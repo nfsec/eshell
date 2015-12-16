@@ -1,0 +1,1011 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -----------------
+# title            : eShell
+# description      : Elasticsearch API avaiable via interactive shell.
+# author           : Patryk 'agresor' Krawaczynski
+# update date      : 06.10.2015
+# version          : 0.3.6
+# usage            : ./eshell [es master ip | es master hostname]
+# python version   : 2.7.8
+# required modules : requests 2.8.0 (http://docs.python-requests.org/en/latest/)
+#                  : elasticsearch 1.9.0 (http://elasticsearch-py.readthedocs.org/en/master/)
+# notes            :
+# -----------------
+
+import re
+import os
+import sys
+import cmd
+import socket
+import operator
+import readline
+import requests
+import subprocess
+import elasticsearch
+
+
+def error(message):
+    """Print error message and exit with status 2."""
+    print "Error: " + message
+    sys.exit(2)
+
+
+def check_ip(ip):
+    """Check if IP address is valid."""
+    try:
+        socket.inet_aton(ip)
+        return True
+    except socket.error:
+        return False
+
+def check_hostname(hostname):
+    """Check if DNS address is valid."""
+    try:
+        socket.gethostbyname(hostname)
+        return True
+    except socket.error:
+        return False
+
+def pretty_print(dictionary, indent=0):
+    """Pretty print all the complexities."""
+    for k, v in sorted(dictionary.items()):
+        if type(v) == dict:
+            print ' ' * indent, str(k) + ": "
+            pretty_print(v, indent + len(k) + 1)
+        elif type(v) == list:
+            if type(v[0]) == dict:
+                print ' ' * indent, str(k) + ": "
+                pretty_print(v[0], indent + len(k) + 1)
+            else:
+                print ' ' * indent,str(k) + ": " + str(v[0])
+        else:
+            print ' ' * indent,str(k) + ": " + str(v)
+
+
+def less(text):
+    """Filter text in less editor."""
+    try:
+        pager = subprocess.Popen(['less', '-F', '-R', '-S', '-X', '-K', '-N'], stdin=subprocess.PIPE, stdout=sys.stdout)
+        for line in text:
+            pager.stdin.write(line)
+        pager.communicate()[0]
+        pager.stdin.close()
+        pager.wait()
+    except IOError:
+        print "Exiting..."
+    except KeyboardInterrupt:
+        print "Exiting..."
+
+
+def isopen(ip, port):
+    """Check if IP address have open port."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1)
+    try:
+        s.connect((ip, port))
+        s.settimeout(None)
+        s.shutdown(2)
+        print "Connected to: " + str(ip) + " on port: " + str(port)
+        return True
+    except socket.error as e:
+        print "Problem with connection to: " + str(ip) + " on port: " + str(port) + ". Error code:", e
+        return False
+
+
+def nodelist():
+    nodes = []
+    for i in es.cat.nodes(h="host").split('\n'):
+        if i:
+            nodes.append(i)
+    return nodes
+
+
+def indexlist():
+    indices = []
+    for i in es.cat.indices(h="index").split('\n'):
+        if i:
+            indices.append(i.replace(" ", ""))
+    return indices
+
+
+class ES(cmd.Cmd):
+    def __init__(self):
+        cmd.Cmd.__init__(self)
+        self.prompt = "es:~$ "
+        self.intro = bcolors.BOLD + "\n### Welcome to elasticsearch console!\n### For more information, type 'help'\n" + bcolors.ENDC
+        self.ruler = "-"
+        self.doc_header = "Available commands (type help <topic>):"
+
+    def do_prompt(self, args):
+        """Change the interactive prompt."""
+        self.prompt = args + ":~$ "
+
+    def preloop(self):
+        """Initialization before prompting user for commands."""
+        cmd.Cmd.preloop(self)
+        self._history = []
+        self._locals = {}
+        self._globals = {}
+
+    def postloop(self):
+        """Take care of any unfinished business."""
+        cmd.Cmd.postloop(self)
+        print "Exiting..."
+
+    def precmd(self, line):
+        """ This method is called after the line has been input but before
+            it has been interpreted. If you want to modifdy the input line
+            before execution (for example, variable substitution) do it here.
+        """
+        self._history += [line.strip()]
+        return line
+
+    def postcmd(self, stop, line):
+        """If you want to stop the console, return something that evaluates to true.
+           If you want to do some post command processing, do it here.
+        """
+        return stop
+
+    def emptyline(self):
+        """Do nothing on empty line input."""
+        pass
+
+    def default(self, line):
+        """Called on an input line when the command prefix is not recognized.
+           In that case we execute the line as Python code.
+        """
+        try:
+            exec (line) in self._locals, self._globals
+        except NameError:
+            print "Command not found."
+        except Exception, e:
+            print e.__class__, ":", e
+
+    def do_help(self, args):
+        """Get help on commands:
+           'help' or '?' with no arguments prints a list of commands for which help is available
+           'help <command>' or '? <command>' gives help on <command>
+        """
+        cmd.Cmd.do_help(self, args)
+
+    def do_history(self, args):
+        """Print a list of commands that have been entered."""
+        print self._history
+
+    def do_EOF(self, line):
+        """Exit on system end of file character (Ctrl+D)."""
+        return True
+
+    def do_quit(self, args):
+        """Quits from the console."""
+        print "Quitting..."
+        raise SystemExit
+
+    def do_exit(self, args):
+        """Exits from the console."""
+        print "Exiting..."
+        sys.exit(2)
+
+    def do_clear(self, args):
+        """Clear the screen."""
+        os.system("clear")
+
+    def do_shell(self, args):
+        """Pass command to a system shell when line begins with '!'"""
+        os.system(args)
+
+    def do_show(self, args):
+        """Enter to cluster information submenu."""
+        show_cli = Show()
+        show_cli.cmdloop()
+
+
+class Show(cmd.Cmd):
+    def __init__(self):
+        cmd.Cmd.__init__(self)
+        self.prompt = "es:show~$ "
+        self.intro = bcolors.BOLD + "\nEntering to cluster information menu.\n" + bcolors.ENDC
+        self.ruler = "-"
+        self.doc_header = "Available commands (type help <topic>):"
+
+    def preloop(self):
+        """Initialization before prompting user for commands."""
+        cmd.Cmd.preloop(self)
+        self._history = []
+        self._locals = {}
+        self._globals = {}
+
+    def postloop(self):
+        """Take care of any unfinished business."""
+        cmd.Cmd.postloop(self)
+        print "Exiting..."
+
+    def precmd(self, line):
+        """ This method is called after the line has been input but before
+            it has been interpreted. If you want to modifdy the input line
+            before execution (for example, variable substitution) do it here.
+        """
+        self._history += [line.strip()]
+        return line
+
+    def postcmd(self, stop, line):
+        """If you want to stop the console, return something that evaluates to true.
+           If you want to do some post command processing, do it here.
+        """
+        return stop
+
+    def emptyline(self):
+        """Do nothing on empty line input."""
+        pass
+
+    def default(self, line):
+        """Called on an input line when the command prefix is not recognized.
+           In that case we execute the line as Python code.
+        """
+        try:
+            exec (line) in self._locals, self._globals
+        except NameError:
+            print "Command not found."
+        except Exception, e:
+            print e.__class__, ":", e
+
+    def do_help(self, args):
+        """Get help on commands:
+           'help' or '?' with no arguments prints a list of commands for which help is available
+           'help <command>' or '? <command>' gives help on <command>
+        """
+        cmd.Cmd.do_help(self, args)
+
+    def do_history(self, args):
+        """Print a list of commands that have been entered."""
+        print self._history
+
+    def do_EOF(self, line):
+        """Exit on system end of file character (Ctrl+D)."""
+        return True
+
+    def do_quit(self, args):
+        """Quits from the show console."""
+        return True
+
+    def do_exit(self, args):
+        """Exits from the show console."""
+        return True
+
+    def do_clear(self, args):
+        """Clear the screen."""
+        os.system("clear")
+
+    def do_shell(self, args):
+        """Pass command to a system shell when line begins with '!'"""
+        os.system(args)
+
+    def do_cluster_info(self, args):
+        """Get the basic info from the current cluster."""
+        for key, value in es.info().iteritems():
+            print str(key) + ' : ' + str(value)
+
+    def do_cluster_master(self, args):
+        """Displays the master’s node ID, bound IP address, and node name."""
+        print es.cat.master(v=True)
+
+    def do_cluster_health(self, args):
+        """Get a very simple status on the health of the cluster."""
+        for key, value in es.cluster.health().iteritems():
+            print str(key) + ': ' + str(value)
+
+    def do_cluster_settings(self, args):
+        """Get cluster settings."""
+        pretty = es.cluster.get_settings(flat_settings=True)
+        for i in pretty.iteritems():
+            print str(i[0]) + ":"
+            for x, y in sorted(i[1].items()):
+                print "            " + str(x) + ": " + str(y)
+
+    def do_cluster_stats(self, args):
+        """The Cluster Stats allows to retrieve statistics from a cluster wide perspective."""
+        pretty = es.cluster.stats(flat_settings=True, human=True)
+        print "cluster_name: " + str(pretty['cluster_name'])
+        print "status: " + str(pretty['status'])
+        print "timestamp: " + str(pretty['timestamp'])
+        print "nodes:"
+        pretty_print(pretty['nodes'], 6)
+        print " "
+        print "indices:"
+        pretty_print(pretty['indices'], 8)
+        print " "
+
+    def do_cluster_tasks(self, args):
+        """Show all pending cluster tasks which have not yet been executed."""
+        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
+        less(task_list.content)
+
+    def do_cluster_tasks_urgent(self, args):
+        """Show urgent cluster tasks which have not yet been executed."""
+        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
+        print task_list.content.split('\n')[0]
+        for line in task_list.content.split('\n'):
+            if "URGENT" in line:
+                print line
+
+    def do_cluster_tasks_high(self, args):
+        """Show high cluster tasks which have not yet been executed."""
+        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
+        print task_list.content.split('\n')[0]
+        for line in task_list.content.split('\n'):
+            if "HIGH" in line:
+                print line
+
+    def do_cluster_tasks_normal(self, args):
+        """Show normal cluster tasks which have not yet been executed."""
+        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
+        print task_list.content.split('\n')[0]
+        for line in task_list.content.split('\n'):
+            if "NORMAL" in line:
+                print line
+
+    def do_cluster_tasks_stats(self, args):
+        """Show cluster tasks statistics."""
+        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
+        ustats = re.compile("URGENT")
+        umatch = ustats.findall(task_list.content)
+        hstats = re.compile("HIGH")
+        hmatch = hstats.findall(task_list.content)
+        nstats = re.compile("NORMAL")
+        nmatch = nstats.findall(task_list.content)
+        print "Tasks statistics: URGENT: {0} HIGH: {1} NORMAL: {2}".format(str(len(umatch)), str(len(hmatch)), str(
+            len(nmatch)))
+
+    def do_cluster_plugins(self, args):
+        """Show plugins installed across cluster."""
+        print es.cat.plugins()
+
+    def do_indices(self, esindex):
+        """The indices command provides a cross-section of each index.
+        - indices <index> - show <index> state.
+        - indices         - show all indices (default).
+        """
+        if esindex:
+            try:
+                print es.cat.indices(index=esindex, v=True)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            less(es.cat.indices(v=True))
+
+    def complete_indices(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_exists(self, esindex):
+        """Return a information indicating whether given index exists.
+        - indices_exists <index> - a name of index to check (default)
+        """
+        if esindex:
+            try:
+                if es.indices.exists(index=esindex):
+                    print esindex + " exists."
+            except TypeError:
+                print esindex + " don't exist."
+            except Exception as e:
+                print e
+        else:
+            print "No indices specified."
+
+    def do_indices_aliases(self, esalias):
+        """Shows information about currently created aliases to indicies.
+        - indices_aliases <alias> - alias name to return from aliases.
+        - indices_aliases         - show all aliases (default).
+        """
+        if esalias:
+            try:
+                print es.cat.aliases(name=esalias, v=True)
+            except Exception as e:
+                print e
+        else:
+            print es.cat.aliases(v=True)
+
+    def do_indices_documents(self, esindex):
+        """Provides quick access to the document count of the entire cluster.
+        - indices_documents <index> - show document count for <index>.
+        - indices_documents         - show document count for all indices (default).
+        """
+        if esindex:
+            try:
+                print es.cat.count(index=esindex, v=True)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            print es.cat.count(v=True)
+
+    def complete_indices_documents(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_red(self, args):
+        """Show indices in red state."""
+        index_list = es.cat.indices(v=True)
+        print index_list.split('\n')[0]
+        for line in index_list.split('\n'):
+            if "red" in line:
+                print line
+
+    def do_indices_yellow(self, args):
+        """Show indices in yellow state."""
+        index_list = es.cat.indices(v=True)
+        print index_list.split('\n')[0]
+        for line in index_list.split('\n'):
+            if "yellow" in line:
+                print line
+
+    def do_indices_green(self, args):
+        """Show indices in green state."""
+        index_list = es.cat.indices(v=True)
+        print index_list.split('\n')[0]
+        for line in index_list.split('\n'):
+            if "green" in line:
+                print line
+
+    def do_indices_status(self, args):
+        """Show indices state statistics."""
+        index_list = es.cat.indices(v=True)
+        rstats = re.compile("red")
+        rmatch = rstats.findall(index_list)
+        ystats = re.compile("yellow")
+        ymatch = ystats.findall(index_list)
+        gstats = re.compile("green")
+        gmatch = gstats.findall(index_list)
+        print "Indices states: RED: " + str(len(rmatch)) + " YELLOW: " + str(len(ymatch)) + " GREEN: " + str(
+            len(gmatch))
+
+    def do_indices_size(self, args):
+        """Show indices size statistics."""
+        index_list = es.cat.indices(h="index,pri.store.size", bytes="b")
+        index_temp = []
+        for text_line in index_list.split():
+            index_temp.append(text_line)
+        index_dict = dict(index_temp[i:i + 2] for i in range(0, len(index_temp), 2))
+        index_dict = {str(k): int(v) for k, v in index_dict.items()}
+        index_sort = sorted(index_dict.items(), key=operator.itemgetter(1))
+        almost_1mb = []
+        almost_10mb = []
+        almost_100mb = []
+        almost_1gb = []
+        almost_10gb = []
+        almost_100gb = []
+        almost_other = []
+        for item in index_sort:
+            if item[1] <= 1000000:
+                almost_1mb.append(item)
+            elif item[1] <= 10000000:
+                almost_10mb.append(item)
+            elif item[1] <= 100000000:
+                almost_100mb.append(item)
+            elif item[1] <= 1000000000:
+                almost_1gb.append(item)
+            elif item[1] <= 10000000000:
+                almost_10gb.append(item)
+            elif item[1] <= 100000000000:
+                almost_100gb.append(item)
+            elif item[1] >= 100000000000:
+                almost_other.append(item)
+        print "i <= 1.MB: {0} | i <= 10.MB: {1} | i <= 100.MB: {2} | i <= 1.GB: {3} | i <= 10.GB: {4} | i <= 100.GB: {5} | i >= 100.GB: {6}".format(
+            str(len(almost_1mb)), str(
+                len(almost_10mb)), str(len(almost_100mb)), str(
+                len(almost_1gb)), str(len(almost_10gb)), str(
+                len(almost_100gb)), str(len(almost_other)))
+
+    def do_indices_settings(self, esindex):
+        """Retrieve settings for one or more (or all) indices.
+        - indices_settings <index> - show settings for <index>.
+        - indices_settings         - show settings for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.get_settings(index=esindex, flat_settings=True)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.indices.get_settings(flat_settings=True)
+        for i in pretty.iteritems():
+            print "name: " + i[0]
+            print "      settings: "
+            for x, y in sorted(i[1]['settings'].items()):
+                print "               " + str(x) + ": " + str(y)
+            print " "
+
+    def do_shards(self, esindex):
+        """The shards command is the detailed view of what nodes contain which shards.
+        - shards <index>      - show shards for <index>.
+        - shards              - show all shards (default).
+        """
+        if esindex:
+            try:
+                print es.cat.shards(index=esindex, v=True)
+            except Exception as e:
+                print e
+        else:
+            less(es.cat.shards(v=True))
+
+    def complete_shards(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_shards_unassigned(self, args):
+        """List unassigned shards."""
+        shard_list = es.cat.shards(v=True)
+        print shard_list.split('\n')[0]
+        for line in shard_list.split('\n'):
+            if "UNASSIGNED" in line:
+                print line
+
+    def do_shards_relocating(self, args):
+        """List relocating shards."""
+        shard_list = es.cat.shards(v=True)
+        print shard_list.split('\n')[0]
+        for line in shard_list.split('\n'):
+            if "RELOCATING" in line:
+                print line
+
+    def do_shards_initializing(self, args):
+        """List initializing shards."""
+        shard_list = es.cat.shards(v=True)
+        print shard_list.split('\n')[0]
+        for line in shard_list.split('\n'):
+            if "INITIALIZING" in line:
+                print line
+
+    def do_shards_started(self, args):
+        """List started shards."""
+        shard_list = es.cat.shards(v=True)
+        print shard_list.split('\n')[0]
+        for line in shard_list.split('\n'):
+            if "STARTED" in line:
+                print line
+
+    def do_shards_allocation(self, node):
+        """Provides a snapshot of how shards have located around the cluster and the state of disk usage.
+        - shards_allocation <node>  - show shards count and disk usage for <node>.
+        - shards_allocation         - show shards count and disk usage for all nodes (default).
+        """
+        if node:
+            try:
+                print es.cat.allocation(node_id=node, v=True)
+            except Exception as e:
+                print e
+        else:
+            print es.cat.allocation(v=True)
+
+    def complete_shards_allocation(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_shards_recovery(self, esindex):
+        """View of shard replication.
+        - shards_recovery <index> - show <index> shard recovery stage.
+        - shards_recovery         - show all indices shards recovery stages (default).
+        """
+        if esindex:
+            try:
+                print es.cat.recovery(index=esindex,
+                                      h="index,shard,time,type,stage,source_host,target_host,files_percent,bytes_percent,translog,translog_percent,total_translog",
+                                      v=True)
+            except Exception as e:
+                print e
+        else:
+            less(es.cat.recovery(
+                h="index,shard,time,type,stage,source_host,target_host,files_percent,bytes_percent,translog,translog_percent,total_translog",
+                v=True))
+
+    def do_segments(self, esindex):
+        """The segments command is the detailed view of Lucene segments per index.
+        - segments <index>  - show segments for <index>.
+        - segments          - show all segments (default).
+        """
+        if esindex:
+            try:
+                less(es.cat.segments(index=esindex, v=True))
+            except Exception as e:
+                print e
+        else:
+            less(es.cat.segments(v=True))
+
+    def do_nodes_fielddata(self, args):
+        """Shows information about currently loaded fielddata on a per-node basis."""
+        print es.cat.fielddata(fields="total", v=True)
+
+    def do_nodes_ids(self, args):
+        """Shows the nodes IDs."""
+        print es.cat.thread_pool(full_id=True, v=True, h="id,host,ip,port")
+
+    def do_nodes_memory(self, args):
+        """Shows the nodes memory usage."""
+        print es.cat.nodes(v=True, h="host,heap.current,heap.percent,heap.max,ram.current,ram.percent,ram.max")
+
+    def do_nodes_jdk(self, args):
+        """Shows the JDK and ES installed versions."""
+        print es.cat.nodes(v=True, h="host,version,build,jdk,pid")
+
+    def do_nodes_filedesc(self, args):
+        """Shows nodes file descriptors usage."""
+        print es.cat.nodes(v=True, h="host,file_desc.current,file_desc.percent,file_desc.max")
+
+    def do_nodes_topology(self, args):
+        """This command shows the cluster topology, uptime and load of the nodes."""
+        print es.cat.nodes(v=True, h="host,node.role,master,uptime,load")
+
+    do_nodes_disk = do_shards_allocation
+
+    do_nodes_load = do_nodes_topology
+
+    def do_nodes_tpools_bulk(self, args):
+        """Get information about bulk thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,bulk.type,bulk.active,bulk.size,bulk.queue,bulk.queueSize,bulk.rejected,bulk.largest,bulk.completed,bulk.min,bulk.max,bulk.keepalive")
+
+    def do_nodes_tpools_flush(self, args):
+        """Get information about flush thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,flush.type,flush.active,flush.size,flush.queue,flush.queueSize,flush.rejected,flush.largest,flush.completed,flush.min,flush.max,flush.keepalive")
+
+    def do_nodes_tpools_generic(self, args):
+        """Get information about generic thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,generic.type,generic.active,generic.size,generic.queue,generic.queueSize,generic.rejected,generic.largest,generic.completed,generic.min,generic.max,generic.keepalive")
+
+    def do_nodes_tpools_get(self, args):
+        """Get information about get thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,get.type,get.active,get.size,get.queue,get.queueSize,get.rejected,get.largest,get.completed,get.min,get.max,get.keepalive")
+
+    def do_nodes_tpools_index(self, args):
+        """Get information about index thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,index.type,index.active,index.size,index.queue,index.queueSize,index.rejected,index.largest,index.completed,index.min,index.max,index.keepalive")
+
+    def do_nodes_tpools_management(self, args):
+        """Get information about management thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,management.type,management.active,management.size,management.queue,management.queueSize,management.rejected,management.largest,management.completed,management.min,management.max,management.keepalive")
+
+    def do_nodes_tpools_merge(self, args):
+        """Get information about merge thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,merge.type,merge.active,merge.size,merge.queue,merge.queueSize,merge.rejected,merge.largest,merge.completed,merge.min,merge.max,merge.keepalive")
+
+    def do_nodes_tpools_optimize(self, args):
+        """Get information about optimize thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,optimize.type,optimize.active,optimize.size,optimize.queue,optimize.queueSize,optimize.rejected,optimize.largest,optimize.completed,optimize.min,optimize.max,optimize.keepalive")
+
+    def do_nodes_tpools_percolate(self, args):
+        """Get information about percolate thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,percolate.type,percolate.active,percolate.size,percolate.queue,percolate.queueSize,percolate.rejected,percolate.largest,percolate.completed,percolate.min,percolate.max,percolate.keepalive")
+
+    def do_nodes_tpools_refresh(self, args):
+        """Get information about refresh thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,refresh.type,refresh.active,refresh.size,refresh.queue,refresh.queueSize,refresh.rejected,refresh.largest,refresh.completed,refresh.min,refresh.max,refresh.keepalive")
+
+    def do_nodes_tpools_snapshot(self, args):
+        """Get information about snapshot thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,snapshot.type,snapshot.active,snapshot.size,snapshot.queue,snapshot.queueSize,snapshot.rejected,snapshot.largest,snapshot.completed,snapshot.min,snapshot.max,snapshot.keepalive")
+
+    def do_nodes_tpools_suggest(self, args):
+        """Get information about suggest thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,suggest.type,suggest.active,suggest.size,suggest.queue,suggest.queueSize,suggest.rejected,suggest.largest,suggest.completed,suggest.min,suggest.max,suggest.keepalive")
+
+    def do_nodes_tpools_warmer(self, args):
+        """Get information about warmer thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,warmer.type,warmer.active,warmer.size,warmer.queue,warmer.queueSize,warmer.rejected,warmer.largest,warmer.completed,warmer.min,warmer.max,warmer.keepalive")
+
+    def do_nodes_tpools_search(self, args):
+        """Get information about search thread pools."""
+        print es.cat.thread_pool(full_id=True, v=True,
+                                 h="host,ip,search.type,search.active,search.size,search.queue,search.queueSize,search.rejected,search.largest,search.completed,search.min,search.max,search.keepalive")
+
+    def do_nodes_htop(self, node):
+        """Get the current hot threads on each node in the cluster.
+        - nodes_htop <node>  - show hot threads for <node>.
+        - nodes_htop         - show hot threads for all nodes (default).
+        """
+        if node:
+            try:
+                less(es.nodes.hot_threads(node_id=node))
+            except Exception as e:
+                print e
+        else:
+            less(es.nodes.hot_threads())
+
+    def complete_nodes_htop(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_nodes_settings(self, node):
+        """Allows you to retrieve settings information for one or all of the cluster nodes.
+        - nodes_settings <node> - show current settings for <node>.
+        - nodes_settings        - show current settings for all nodes (default).
+        """
+        if node:
+            try:
+                pretty = es.nodes.info(metric="settings", node_id=node, flat_settings=True, human=True)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.info(metric="settings", flat_settings=True, human=True)
+        for i in pretty['nodes'].iteritems():
+            print "name: " + i[1]['name']
+            print "ip: " + i[1]['ip']
+            print "    settings: "
+            for x, y in sorted(i[1]['settings'].items()):
+                print "             " + str(x) + ": " + str(y)
+            print " "
+
+    def complete_nodes_settings(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_nodes_hardware(self, node):
+        """Allows you to retrieve hardware information for one or all of the cluster nodes.
+        - nodes_hardware <node> - show hardware info for <node>
+        - nodes_hardware        - show hardware info for all nodes (default).
+        """
+        if node:
+            try:
+                pretty = es.nodes.info(metric="os", node_id=node, flat_settings=True, human=True)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.info(metric="os", node_id=node, flat_settings=True, human=True)
+        for i in pretty['nodes'].iteritems():
+            print "name: " + i[1]['name']
+            print "ip: " + i[1]['ip']
+            print "    hardware: "
+            print "             cpu: "
+            for x, y in i[1]['os']['cpu'].items():
+                print "                  " + str(x) + ": " + str(y)
+            print "             mem: "
+            for x, y in i[1]['os']['mem'].items():
+                print "                  " + str(x) + ": " + str(y)
+            print "             swp: "
+            for x, y in i[1]['os']['swap'].items():
+                print "                  " + str(x) + ": " + str(y)
+            print " "
+
+    def complete_nodes_hardware(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_nodes_fs(self, node):
+        """File system information, data path, free disk space, read/write stats.
+        - nodes_fs <node> - show fs information for <node>
+        - nodes_fs        - show fs information for all nodes (default).
+        """
+        if node:
+            try:
+                pretty = es.nodes.stats(metric="fs", human=True, node_id=node)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.stats(metric="fs", human=True)
+        for i in pretty['nodes'].iteritems():
+            print "name: " + i[1]['name']
+            if i[1]['fs']['data']:
+                print "      data:"
+                for k, v in sorted(i[1]['fs']['data'][0].items()):
+                    print "            " + str(k) + ": " + str(v)
+                print " "
+            else:
+                print "      data:"
+                print "           I'm client node. I don't have fs."
+                print " "
+
+    def complete_nodes_fs(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_nodes_jvm(self, node):
+        """JVM stats, memory pool information, garbage collection, buffer pools.
+        - nodes_jvm <node> - show jvm stats for <node>
+        - nodes_jvm        - show jvm stats for all nodes (default).
+        """
+        if node:
+            try:
+                pretty = es.nodes.stats(metric="jvm", human=True, node_id=node)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.stats(metric="jvm", human=True)
+        for i in sorted(pretty['nodes'].iteritems()):
+            print "name: " + i[1]['name']
+            print "      jvm:"
+            print "          mem:"
+            pretty_print(i[1]['jvm']['mem'], 13)
+            print " "
+
+    def do_nodes_http(self, node):
+        """HTTP connection information.
+        - nodes_http <node> - show http information for <node>
+        - nodes_http        - show http information for all nodes (default).
+        """
+        if node:
+            try:
+                pretty = es.nodes.stats(metric="http", human=True, node_id=node)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.stats(metric="http", human=True)
+        for i in pretty['nodes'].iteritems():
+            print "name: " + i[1]['name']
+            print "      http:"
+            for k, v in sorted(i[1]['http'].items()):
+                print "            " + str(k) + ": " + str(v)
+            print " "
+
+    def complete_nodes_http(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_nodes_transport(self, node):
+        """Transport statistics about sent and received bytes in cluster communication.
+        - nodes_transport <node> - show transport information for <node>
+        - nodes_transport        - show transport information for all nodes (default).
+        """
+        if node:
+            try:
+                pretty = es.nodes.stats(metric="transport", human=True, node_id=node)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.stats(metric="transport", human=True)
+        for i in sorted(pretty['nodes'].iteritems()):
+            print "name: " + i[1]['name']
+            print "      transport:"
+            pretty_print(i[1]['transport'], 15)
+            print " "
+
+    def complete_nodes_transport(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_nodes_network(self, node):
+        """TCP information.
+        - nodes_network <node> - show network information for <node>
+        - nodes_network        - show network information for all nodes (default).
+        """
+        if node:
+            try:
+                pretty = es.nodes.stats(metric="network", human=True, node_id=node)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.stats(metric="network", human=True)
+        for i in sorted(pretty['nodes'].iteritems()):
+            print "name: " + i[1]['name']
+            print "      network:"
+            print "              tcp:"
+            pretty_print(i[1]['network']['tcp'], 17)
+            print " "
+
+    def complete_nodes_network(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_nodes_breaker(self, node):
+        """ Statistics about the field data circuit breaker.
+        - nodes_breaker <node> - show circuit breaker for <node>
+        - nodes_breaker        - show circuit breaker for all nodes (default).
+        """
+        if node:
+            try:
+                pretty = es.nodes.stats(metric="breaker", human=True, node_id=node)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.stats(metric="breaker", human=True)
+        for i in pretty['nodes'].iteritems():
+            print "name: " + i[1]['name']
+            print "      breakers:"
+            print "               fielddata:"
+            for x, y in sorted(i[1]['breakers']['fielddata'].items()):
+                print "                         " + str(x) + ": " + str(y)
+            print "               request:"
+            for x, y in sorted(i[1]['breakers']['request'].items()):
+                print "                         " + str(x) + ": " + str(y)
+            print "               parent:"
+            for x, y in sorted(i[1]['breakers']['parent'].items()):
+                print "                         " + str(x) + ": " + str(y)
+            print " "
+
+    def complete_nodes_breaker(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_nodes_indices(self, node):
+        """ Indices stats about size, document count, indexing and deletion times,
+        search times, field cache size , merges and flushes.
+        - nodes_indices <node> - show indices stats for <node>
+        - nodes_indices        - show indices stats for all nodes (default)
+        """
+        if node:
+            try:
+                pretty = es.nodes.stats(metric="indices", human=True, node_id=node)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.stats(metric="indices", human=True)
+        for i in sorted(pretty['nodes'].iteritems()):
+            print "name: " + i[1]['name']
+            print "     indices:"
+            pretty_print(i[1]['indices'], 13)
+            print " "
+
+    def complete_nodes_indices(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+    def do_nodes_process(self, node):
+        """Process statistics, memory consumption, cpu usage, open file descriptors.
+        - nodes_process <node> - show process stats for <node>
+        - nodes_process        - show process stats for all nodes (default)
+        """
+        if node:
+            try:
+                pretty = es.nodes.stats(metric="process", human=True, node_id=node)
+            except Exception as e:
+                print e
+        else:
+            pretty = es.nodes.stats(metric="process", human=True)
+        for i in sorted(pretty['nodes'].iteritems()):
+            print "name: " + i[1]['name']
+            print "     process:"
+            pretty_print(i[1]['process'], 13)
+
+    def complete_nodes_process(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print "No elasticsearch server specified. Using default localhost." + bcolors.ENDC
+        if isopen("127.0.0.1", 9200):
+            host = '127.0.0.1'
+        else:
+            sys.exit(1)
+    elif len(sys.argv) == 2:
+        if check_hostname(sys.argv[1]):
+            print bcolors.HEADER + "Connecting to elasticsearch server at address: %s" % sys.argv[1] + bcolors.ENDC
+            if isopen(sys.argv[1], 9200):
+                host = sys.argv[1]
+            else:
+                sys.exit(1)
+        elif check_ip(sys.argv[1]):
+            print bcolors.HEADER + "Connecting to elasticsearch server at address: %s" % sys.argv[1] + bcolors.ENDC
+            if isopen(sys.argv[1], 9200):
+                host = sys.argv[1]
+            else:
+                sys.exit(1)
+        else:
+            error("Wrong IP/DNS ES master address.")
+    else:
+        sys.exit("Usage: " + sys.argv[0] + " [ES master IP/DNS address]")
+    try:
+        # Autocomplete for Mac OS X
+        if 'libedit' in readline.__doc__:
+            readline.parse_and_bind("bind ^I rl_complete")
+        else:
+            readline.parse_and_bind("tab: complete")
+
+        es = elasticsearch.Elasticsearch([host], sniff_on_start=False, sniff_on_connection_fail=False,
+                                         sniffer_timeout=None, timeout=300, retry_on_timeout=True, retry_on_status=True,
+                                         max_retries=3)
+        url = 'http://' + host + ':9200'
+        esconsole = ES()
+        esconsole.cmdloop()
+    except Exception as e:
+        print e

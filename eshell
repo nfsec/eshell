@@ -4,11 +4,11 @@
 # title            : eShell
 # description      : Elasticsearch API avaiable via interactive shell.
 # author           : Patryk 'agresor' Krawaczynski
-# update date      : 06.10.2015
-# version          : 0.3.6
+# update date      : 21.02.2016
+# version          : 0.3.7
 # usage            : ./eshell [es master ip | es master hostname]
-# python version   : 2.7.8
-# required modules : requests 2.8.0 (http://docs.python-requests.org/en/latest/)
+# python version   : 2.7.10
+# required modules : requests 2.9.1 (http://docs.python-requests.org/en/latest/)
 #                  : elasticsearch 1.9.0 (http://elasticsearch-py.readthedocs.org/en/master/)
 # notes            :
 # -----------------
@@ -17,6 +17,7 @@ import re
 import os
 import sys
 import cmd
+import json
 import socket
 import operator
 import readline
@@ -159,6 +160,10 @@ class ES(cmd.Cmd):
             exec (line) in self._locals, self._globals
         except NameError:
             print "Command not found."
+        except SyntaxError:
+            print "Invalid command syntax."
+        except KeyboardInterrupt:
+            print "Exiting..."
         except Exception, e:
             print e.__class__, ":", e
 
@@ -247,6 +252,10 @@ class Show(cmd.Cmd):
             exec (line) in self._locals, self._globals
         except NameError:
             print "Command not found."
+        except SyntaxError:
+            print "Invalid command syntax."
+        except KeyboardInterrupt:
+            print "Exiting..."
         except Exception, e:
             print e.__class__, ":", e
 
@@ -517,10 +526,74 @@ class Show(cmd.Cmd):
                 print "               " + str(x) + ": " + str(y)
             print " "
 
+    def complete_indices_settings(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_store(self, esindex):
+        """Show the store size of the index.
+        - indices_store <index> - show primary and total store for <index>.
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="store")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary store: "
+                    pretty_print(i[1], 13)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total store: "
+                    pretty_print(i[1], 13)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            print "Please provide index name."
+
+    def complete_indices_store(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+     # TODO merge, suggest etc.
+
+    def do_indices_mapping(self, esindex):
+        """Retrieve mapping definition of index.
+        - indices_mapping <index> - show <index> mapping.
+        """
+        if esindex:
+            try:
+                pretty = es.indices.get_mapping(index=esindex)
+                print json.dumps(pretty, indent=4)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            print "Please provide index name."
+
+    def complete_indices_mapping(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_template(self, tplname):
+        """Retrieve an index template by its name.
+        - indices_template <template> - show settings and mappings for <template>.
+        - indices_template            - show avaiable templates names (default).
+        """
+        if tplname:
+            try:
+                pretty = es.indices.get_template(name=tplname)
+                print json.dumps(pretty, indent=4)
+            except TypeError:
+                print "Template not found!"
+            except Exception as e:
+                print e
+        else:
+            print "Avaiable templates: "
+            for i in es.indices.get_template().iteritems():
+                print " " * 20 + i[0]
+
     def do_shards(self, esindex):
         """The shards command is the detailed view of what nodes contain which shards.
-        - shards <index>      - show shards for <index>.
-        - shards              - show all shards (default).
+        - shards <index> - show shards for <index>.
+        - shards         - show all shards (default).
         """
         if esindex:
             try:
@@ -567,8 +640,8 @@ class Show(cmd.Cmd):
 
     def do_shards_allocation(self, node):
         """Provides a snapshot of how shards have located around the cluster and the state of disk usage.
-        - shards_allocation <node>  - show shards count and disk usage for <node>.
-        - shards_allocation         - show shards count and disk usage for all nodes (default).
+        - shards_allocation <node> - show shards count and disk usage for <node>.
+        - shards_allocation        - show shards count and disk usage for all nodes (default).
         """
         if node:
             try:
@@ -600,8 +673,8 @@ class Show(cmd.Cmd):
 
     def do_segments(self, esindex):
         """The segments command is the detailed view of Lucene segments per index.
-        - segments <index>  - show segments for <index>.
-        - segments          - show all segments (default).
+        - segments <index> - show segments for <index>.
+        - segments         - show all segments (default).
         """
         if esindex:
             try:
@@ -610,6 +683,9 @@ class Show(cmd.Cmd):
                 print e
         else:
             less(es.cat.segments(v=True))
+
+    def do_nodes_indexing(self, args):
+        print es.cat.nodes(v=True, h="host,indexing.index_current,indexing.index_time,indexing.index_total")
 
     def do_nodes_fielddata(self, args):
         """Shows information about currently loaded fielddata on a per-node basis."""
@@ -711,8 +787,8 @@ class Show(cmd.Cmd):
 
     def do_nodes_htop(self, node):
         """Get the current hot threads on each node in the cluster.
-        - nodes_htop <node>  - show hot threads for <node>.
-        - nodes_htop         - show hot threads for all nodes (default).
+        - nodes_htop <node> - show hot threads for <node>.
+        - nodes_htop        - show hot threads for all nodes (default).
         """
         if node:
             try:
@@ -1007,5 +1083,8 @@ if __name__ == '__main__':
         url = 'http://' + host + ':9200'
         esconsole = ES()
         esconsole.cmdloop()
+    except KeyboardInterrupt:
+        print "Exiting..."
+        raise SystemExit
     except Exception as e:
         print e

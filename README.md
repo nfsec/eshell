@@ -3,7 +3,7 @@
 EShell is a Python script that allows you to interact from command-line with a running [elasticsearch](https://www.elastic.co/products/elasticsearch)
 cluster using the APIs over HTTP.
 
-> v0.3.7 tested under Elasticsearch v1.7.3
+> v0.3.8 tested under Elasticsearch v1.7.3
 
 **Example:**
 
@@ -33,8 +33,15 @@ active_shards: 18382
 initializing_shards: 0
 number_of_data_nodes: 20
 delayed_unassigned_shards: 0
-es:show~$
+es:show~$ indices_size
+i <= 1.MB: 2092 | i <= 10.MB: 1490 | i <= 100.MB: 1195 | i <= 1.GB: 1036 | i <= 10.GB: 811 | i <= 100.GB: 584 | i >= 100.GB: 89
 ```
+**Changelog (v0.3.8):**
+
+- Command "segments" is now: "indices_segments",
+- New "show" commands: indices_indexing, indices_get, indices_search, nodes_filtercache, nodes_flush, nodes_get, nodes_merges, nodes_percolate, nodes_refresh, nodes_search, nodes_segments
+- Upgraded "show" commands: nodes_memory, nodes_jdk, nodes_filedesc, nodes_topology
+- New "exec" section with commands: indices_open, indices_close, indices_delete, indices_synced_flush, indices_optimize, nodes_shutdown
 
 **Changelog (v0.3.7):**
 

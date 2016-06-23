@@ -36,6 +36,13 @@ delayed_unassigned_shards: 0
 es:show~$ indices_size
 i <= 1.MB: 2092 | i <= 10.MB: 1490 | i <= 100.MB: 1195 | i <= 1.GB: 1036 | i <= 10.GB: 811 | i <= 100.GB: 584 | i >= 100.GB: 89
 ```
+**Changelog (v0.3.10):**
+
+- New "show" commands: cluster_ping, indices_(completion|fielddata|flush|query_cache|refresh|suggest|warmer|translog)
+- New "exec" commands: templates_delete, indieces_replica_disable, indices_replica_enable, indices_cluster_cache, indices_alias
+- Autocomplete in every command
+- Requests update
+
 **Changelog (v0.3.8):**
 
 - Command "segments" is now: "indices_segments",

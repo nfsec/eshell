@@ -4,12 +4,12 @@
 # title            : eShell
 # description      : Elasticsearch API avaiable via interactive shell.
 # author           : Patryk 'agresor' Krawaczynski
-# update date      : 07.03.2016
-# version          : 0.3.8
+# update date      : 22.06.2016
+# version          : 0.3.10
 # license          : Apache License (2.0)
 # usage            : ./eshell [es master ip | es master hostname]
 # python version   : 2.7.10
-# required modules : requests 2.9.1 (http://docs.python-requests.org/en/latest/)
+# required modules : requests 2.10.0 (http://docs.python-requests.org/en/latest/)
 #                  : elasticsearch 1.9.0 (http://elasticsearch-py.readthedocs.org/en/master/)
 # notes            :
 # -----------------
@@ -125,7 +125,7 @@ class ES(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = "es:~$ "
-        self.intro = bcolors.BOLD + "\n### Welcome to elasticsearch console!\n### For more information, type 'help'\n" + bcolors.ENDC
+        self.intro = BColors.BOLD + "\n### Welcome to elasticsearch console!\n### For more information, type 'help'\n" + BColors.ENDC
         self.ruler = "-"
         self.doc_header = "Available commands (type help <topic>):"
 
@@ -175,7 +175,7 @@ class ES(cmd.Cmd):
             print "Invalid command syntax."
         except KeyboardInterrupt:
             print "Exiting..."
-        except Exception, e:
+        except Exception as e:
             print e.__class__, ":", e
 
     def do_help(self, args):
@@ -226,7 +226,7 @@ class Show(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = "es:show~$ "
-        self.intro = bcolors.BOLD + "\nEntering to cluster information menu.\n" + bcolors.ENDC
+        self.intro = BColors.BOLD + "\nEntering to cluster information menu.\n" + BColors.ENDC
         self.ruler = "-"
         self.doc_header = "Available commands (type help <topic>):"
 
@@ -272,7 +272,7 @@ class Show(cmd.Cmd):
             print "Invalid command syntax."
         except KeyboardInterrupt:
             print "Exiting..."
-        except Exception, e:
+        except Exception as e:
             print e.__class__, ":", e
 
     def do_help(self, args):
@@ -305,6 +305,13 @@ class Show(cmd.Cmd):
     def do_shell(self, args):
         """Pass command to a system shell when line begins with '!'"""
         os.system(args)
+
+    def do_cluster_ping(self, args):
+        """Returns Alive if the cluster is up, Dead otherwise."""
+        if es.ping():
+            print "Alive!"
+        else:
+            print "Dead!"
 
     def do_cluster_info(self, args):
         """Get the basic info from the current cluster."""
@@ -580,7 +587,7 @@ class Show(cmd.Cmd):
             except Exception as e:
                 print e
         else:
-            esindex = "*"
+            esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="store")
                 for i in sorted(pretty['_all']['primaries'].iteritems()):
@@ -616,7 +623,7 @@ class Show(cmd.Cmd):
             except Exception as e:
                 print e
         else:
-            esindex = "*"
+            esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="indexing")
                 for i in sorted(pretty['_all']['primaries'].iteritems()):
@@ -652,7 +659,7 @@ class Show(cmd.Cmd):
             except Exception as e:
                 print e
         else:
-            esindex = "*"
+            esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="get")
                 for i in sorted(pretty['_all']['primaries'].iteritems()):
@@ -688,7 +695,7 @@ class Show(cmd.Cmd):
             except Exception as e:
                 print e
         else:
-            esindex = "*"
+            esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="search")
                 for i in sorted(pretty['_all']['primaries'].iteritems()):
@@ -705,7 +712,293 @@ class Show(cmd.Cmd):
     def complete_indices_search(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
 
-        # TODO merge, suggest etc.
+    def do_indices_completion(self, esindex):
+        """Show completion suggest statistics for the index.
+        - indices_completion <index> - show primary and total completion for <index>.
+        - indices_completion         - show primary and total completion for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="completion")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary completion: "
+                    pretty_print(i[1], 18)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total completion: "
+                    pretty_print(i[1], 18)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            esindex = "_all"
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="completion")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary completion: "
+                    pretty_print(i[1], 18)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total completion: "
+                    pretty_print(i[1], 18)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+    def complete_indices_completion(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_fielddata(self, esindex):
+        """Show fielddata statistics for the index.
+        - indices_fielddata <index> - show primary and total fielddata for <index>.
+        - indices_fielddata         - show primary and total fielddata for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="fielddata")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary fielddata: "
+                    pretty_print(i[1], 17)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total fielddata: "
+                    pretty_print(i[1], 17)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            esindex = "_all"
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="fielddata")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary fielddata: "
+                    pretty_print(i[1], 17)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total fielddata: "
+                    pretty_print(i[1], 17)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+    def complete_indices_fielddata(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_flush(self, esindex):
+        """Show flush statistics for the index.
+        - indices_flush <index> - show primary and total flush for <index>.
+        - indices_flush         - show primary and total flush for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="flush")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary flush: "
+                    pretty_print(i[1], 13)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total flush: "
+                    pretty_print(i[1], 13)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            esindex = "_all"
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="flush")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary flush: "
+                    pretty_print(i[1], 13)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total flush: "
+                    pretty_print(i[1], 13)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+    def complete_indices_flush(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_query_cache(self, esindex):
+        """Show query cache statistics for the index.
+        - indices_query_cache <index> - show primary and total query cache for <index>.
+        - indices_query_cache         - show primary and total query cache for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="query_cache")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary query_cache: "
+                    pretty_print(i[1], 19)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total query_cache: "
+                    pretty_print(i[1], 19)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            esindex = "_all"
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="query_cache")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary query_cache: "
+                    pretty_print(i[1], 19)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total query_cache: "
+                    pretty_print(i[1], 19)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+    def complete_indices_query_cache(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_refresh(self, esindex):
+        """Show refresh statistics for the index.
+        - indices_refresh <index> - show primary and total refresh for <index>.
+        - indices_refresh         - show primary and total refresh for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="refresh")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary refresh: "
+                    pretty_print(i[1], 15)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total refresh: "
+                    pretty_print(i[1], 15)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            esindex = "_all"
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="refresh")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary refresh: "
+                    pretty_print(i[1], 15)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total refresh: "
+                    pretty_print(i[1], 15)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+    def complete_indices_refresh(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_suggest(self, esindex):
+        """Show suggest statistics for the index.
+        - indices_suggest <index> - show primary and total suggest for <index>.
+        - indices_suggest         - show primary and total suggest for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="suggest")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary suggest: "
+                    pretty_print(i[1], 15)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total suggest: "
+                    pretty_print(i[1], 15)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            esindex = "_all"
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="suggest")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary suggest: "
+                    pretty_print(i[1], 15)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total suggest: "
+                    pretty_print(i[1], 15)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+    def complete_indices_suggest(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_warmer(self, esindex):
+        """Show warmer statistics for the index.
+        - indices_warmer <index> - show primary and total warmer for <index>.
+        - indices_warmer         - show primary and total warmer for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="warmer")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary warmer: "
+                    pretty_print(i[1], 14)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total warmer: "
+                    pretty_print(i[1], 14)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            esindex = "_all"
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="warmer")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary warmer: "
+                    pretty_print(i[1], 14)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total warmer: "
+                    pretty_print(i[1], 14)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+    def complete_indices_warmer(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_translog(self, esindex):
+        """Show translog statistics for the index.
+        - indices_translog <index> - show primary and total translog for <index>.
+        - indices_translog         - show primary and total translog for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="translog")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary translog: "
+                    pretty_print(i[1], 14)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total translog: "
+                    pretty_print(i[1], 14)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            esindex = "_all"
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="translog")
+                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                    print "primary translog: "
+                    pretty_print(i[1], 14)
+                for i in sorted(pretty['_all']['total'].iteritems()):
+                    print "total translog: "
+                    pretty_print(i[1], 14)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+    def complete_indices_translog(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
 
     def do_indices_mapping(self, esindex):
         """Retrieve mapping definition of index.
@@ -826,7 +1119,8 @@ class Show(cmd.Cmd):
 
     def do_nodes_indexing(self, args):
         """Shows number of current indexing operations per node."""
-        print es.cat.nodes(v=True, h="name,host,indexing.index_current,indexing.index_time,indexing.index_total,indexing.delete_current,indexing.delete_time,indexing.delete_total")
+        print es.cat.nodes(v=True,
+                           h="name,host,indexing.index_current,indexing.index_time,indexing.index_total,indexing.delete_current,indexing.delete_time,indexing.delete_total")
 
     def do_nodes_fielddata(self, args):
         """Shows information about currently loaded fielddata on a per-node basis."""
@@ -842,15 +1136,18 @@ class Show(cmd.Cmd):
 
     def do_nodes_get(self, args):
         """Shows number of current get operations per node."""
-        print es.cat.nodes(v=True, h="name,host,get.current,get.time,get.total,get.exists_time,get.exists_total,get.missing_time,get.missing_total")
+        print es.cat.nodes(v=True,
+                           h="name,host,get.current,get.time,get.total,get.exists_time,get.exists_total,get.missing_time,get.missing_total")
 
     def do_nodes_merges(self, args):
         """Show number of current merge operations per node."""
-        print es.cat.nodes(v=True, h="name,host,merges.current,merges.current_docs,merges.current_size,merges.total,merges.total_docs,merges.total_size,merges.total_time")
+        print es.cat.nodes(v=True,
+                           h="name,host,merges.current,merges.current_docs,merges.current_size,merges.total,merges.total_docs,merges.total_size,merges.total_time")
 
     def do_nodes_percolate(self, args):
         """Show number of current percolations per node."""
-        print es.cat.nodes(v=True, h="name,host,percolate.current,percolate.memory_size,percolate.queries,percolate.time,percolate.total")
+        print es.cat.nodes(v=True,
+                           h="name,host,percolate.current,percolate.memory_size,percolate.queries,percolate.time,percolate.total")
 
     def do_nodes_refresh(self, args):
         """Show number of refreshes per node."""
@@ -858,11 +1155,13 @@ class Show(cmd.Cmd):
 
     def do_nodes_search(self, args):
         """Show current fetch phase operations per node."""
-        print es.cat.nodes(v=True, h="name,host,search.fetch_current,search.fetch_time,search.fetch_total,search.open_contexts,search.query_current,search.query_time,search.query_total,search.scroll_current,search.scroll_time,search.scroll_total")
+        print es.cat.nodes(v=True,
+                           h="name,host,search.fetch_current,search.fetch_time,search.fetch_total,search.open_contexts,search.query_current,search.query_time,search.query_total,search.scroll_current,search.scroll_time,search.scroll_total")
 
     def do_nodes_segments(self, args):
         """Show number of segments per node."""
-        print es.cat.nodes(v=True, h="name,host,segments.count,segments.memory,segments.index_writer_memory,segments.index_writer_max_memory")
+        print es.cat.nodes(v=True,
+                           h="name,host,segments.count,segments.memory,segments.index_writer_memory,segments.index_writer_max_memory")
 
     def do_nodes_ids(self, args):
         """Shows the nodes IDs."""
@@ -1073,6 +1372,9 @@ class Show(cmd.Cmd):
             pretty_print(i[1]['jvm']['mem'], 13)
             print " "
 
+    def complete_nodes_jvm(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
+
     def do_nodes_http(self, node):
         """HTTP connection information.
         - nodes_http <node> - show http information for <node>
@@ -1221,7 +1523,7 @@ class Exec(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = "es:exec~$ "
-        self.intro = bcolors.BOLD + "\nEntering to cluster execution menu.\n" + bcolors.ENDC
+        self.intro = BColors.BOLD + "\nEntering to cluster execution menu.\n" + BColors.ENDC
         self.ruler = "-"
         self.doc_header = "Available commands (type help <topic>):"
 
@@ -1267,7 +1569,7 @@ class Exec(cmd.Cmd):
             print "Invalid command syntax."
         except KeyboardInterrupt:
             print "Exiting..."
-        except Exception, e:
+        except Exception as e:
             print e.__class__, ":", e
 
     def do_help(self, args):
@@ -1360,12 +1662,10 @@ class Exec(cmd.Cmd):
     def complete_show(self, text, line, begidx, endidx):
         return [i for i in commandlist(Show()) if i.startswith(text)]
 
-    def do_synced_flush(self, esindex):
+    def do_indices_synced_flush(self, esindex):
         """Perform a normal flush, then add a generated unique marker (sync_id) to all shards.
-        - synced_flush <index> - flush <index>
-        - synced_flush _all    - flush all indices.
-        :param esindex:
-        :return:
+        - indices_synced_flush <index> - flush <index>
+        - indices_synced_flush _all    - flush all indices.
         """
         if esindex:
             try:
@@ -1377,15 +1677,13 @@ class Exec(cmd.Cmd):
         else:
             print "Please provide index name to sync."
 
-    def complete_synced_flush(self, text, line, begidx, endix):
+    def complete_indices_synced_flush(self, text, line, begidx, endix):
         return [i for i in indexlist() if i.startswith(text)]
 
-    def do_optimize(self, esindex):
+    def do_indices_optimize(self, esindex):
         """
         Explicitly optimize one or more indices through an API.
-        - optimize <index> - optimize <index> to the number of segments equal 1.
-        :param esindex:
-        :return:
+        - indices_optimize <index> - optimize <index> to the number of segments equal 1.
         """
         if esindex:
             try:
@@ -1397,13 +1695,14 @@ class Exec(cmd.Cmd):
         else:
             print "Please provide index name to optimize."
 
-    def do_shutdown(self, esnode):
+    def complete_indices_optimize(self, text, line, begidx, endix):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_nodes_shutdown(self, esnode):
         """
         The nodes shutdown API allows to shutdown one or more nodes in the cluster.
-        - shutdown <node[id,name]> - shutdown node from cluster.
-        - shutdown _local          - shutdown nod you're connected to.
-        :param esnode:
-        :return:
+        - nodes_shutdown <node[id,name]> - shutdown node from cluster.
+        - nodes_shutdown _local          - shutdown nod you're connected to.
         """
         if esnode:
             try:
@@ -1415,8 +1714,93 @@ class Exec(cmd.Cmd):
         else:
             print "Please provide node name to shutdown."
 
+    def complete_nodes_shutdown(self, text, line, begidx, endidx):
+        return [i for i in nodelist() if i.startswith(text)]
 
-class bcolors:
+    def do_templates_delete(self, estemplate):
+        """Delete an index template by its name.
+        - template_delete <template name>
+        """
+        if estemplate:
+            try:
+                es.indices.delete_template(name=estemplate)
+            except TypeError:
+                print "Template not found."
+            except Exception as e:
+                print e
+        else:
+            print "Please provide template name to delete."
+
+    def do_indices_replica_disable(self, esindex):
+        """Change the index number of replicas to 0."""
+        if esindex:
+            try:
+                es.indices.put_settings(body='"number_of_replicas" : 0', index=esindex)
+            except TypeError:
+                print "Index not found."
+            except Exception as e:
+                print e
+        else:
+            print "Please provide index name to change."
+
+    def complete_indices_replica_disable(self, text, line, begidx, endix):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_replica_enable(self, esindex):
+        """Change the index number of replicas to 1."""
+        if esindex:
+            try:
+                es.indices.put_settings(body='"number_of_replicas" : 1', index=esindex)
+            except TypeError:
+                print "Index not found."
+            except Exception as e:
+                print e
+        else:
+            print "Please provide index name to change."
+
+    def complete_indices_replica_enable(self, text, line, begidx, endix):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_clear_cache(self, esindex):
+        """Clear either all caches associated with one ore more indices.
+        - indices_clear_cache <index> - clear all cache for <index>.
+        - indices_clear_cache         - clear all cache for all indices.
+        """
+        if esindex:
+            try:
+                es.indices.clear_cache(index=esindex)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            try:
+                es.indices.clear_cache()
+            except TypeError:
+                print "Index not found."
+            except Exception as e:
+                print e
+
+    def complete_indices_clear_cache(self, text, line, begidx, endix):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_alias(self, args):
+        """Create an alias for a specific index/indices.
+        - indices_alias <index> <alias> - create alias for index.
+        """
+        ops = args.split()
+        if len(ops) != 2:
+            print "Please provide index name and alias."
+        else:
+            try:
+                es.indices.put_alias(index=ops[0], name=ops[1])
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+
+class BColors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -1429,20 +1813,20 @@ class bcolors:
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print "No elasticsearch server specified. Using default localhost." + bcolors.ENDC
+        print "No elasticsearch server specified. Using default localhost." + BColors.ENDC
         if isopen("127.0.0.1", 9200):
             host = '127.0.0.1'
         else:
             sys.exit(1)
     elif len(sys.argv) == 2:
         if check_hostname(sys.argv[1]):
-            print bcolors.HEADER + "Connecting to elasticsearch server at address: %s" % sys.argv[1] + bcolors.ENDC
+            print BColors.HEADER + "Connecting to elasticsearch server at address: %s" % sys.argv[1] + BColors.ENDC
             if isopen(sys.argv[1], 9200):
                 host = sys.argv[1]
             else:
                 sys.exit(1)
         elif check_ip(sys.argv[1]):
-            print bcolors.HEADER + "Connecting to elasticsearch server at address: %s" % sys.argv[1] + bcolors.ENDC
+            print BColors.HEADER + "Connecting to elasticsearch server at address: %s" % sys.argv[1] + BColors.ENDC
             if isopen(sys.argv[1], 9200):
                 host = sys.argv[1]
             else:

@@ -3,7 +3,7 @@
 EShell is a Python script that allows you to interact from command-line with a running [elasticsearch](https://www.elastic.co/products/elasticsearch)
 cluster using the APIs over HTTP.
 
-> v0.3.8 tested under Elasticsearch v1.7.3
+> v0.3.10 tested under Elasticsearch v1.7.5
 
 **Example:**
 

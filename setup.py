@@ -13,14 +13,14 @@ with open('requirements.txt') as f:
 
 setup(
     name = 'eshell',
-    version = '0.3.10',
+    version = '0.3.11',
     description = 'Elasticsearch interactive shell',
     long_description = readme,
     author = 'Patryk Krawaczyński',
     author_email = 'bitbucket@nfsec.pl',
     url = 'https://bitbucket.org/agresor/elasticshell',
     license = 'Apache License (2.0)',
-    keywords = 'elasticsearch shell terminal',
+    keywords = 'elasticsearch shell terminal managment',
     install_requires = required,
     data_files=[('', ['LICENSE', 'README.md'])],
     zip_safe = False,

@@ -3,15 +3,15 @@
 # -----------------
 # title            : eShell
 # description      : Elasticsearch API avaiable via interactive shell.
-# author           : Patryk 'agresor' Krawaczynski
-# update date      : 22.06.2016
-# version          : 0.3.10
+# author           : Patryk "agresor" Krawaczynski
+# update date      : 24.06.2016
+# version          : 0.3.11
 # license          : Apache License (2.0)
 # usage            : ./eshell [es master ip | es master hostname]
 # python version   : 2.7.10
 # required modules : requests 2.10.0 (http://docs.python-requests.org/en/latest/)
 #                  : elasticsearch 1.9.0 (http://elasticsearch-py.readthedocs.org/en/master/)
-# notes            :
+# notes            : https://github.com/nfsec/eshell
 # -----------------
 
 import re
@@ -29,7 +29,7 @@ import elasticsearch
 
 def error(message):
     """Print error message and exit with status 2."""
-    print "Error: " + message
+    print "Error: {0}".format(message)
     sys.exit(2)
 
 
@@ -55,22 +55,22 @@ def pretty_print(dictionary, indent=0):
     """Pretty print all the complexities."""
     for k, v in sorted(dictionary.items()):
         if type(v) == dict:
-            print ' ' * indent, str(k) + ": "
+            print " " * indent, str(k) + ": "
             pretty_print(v, indent + len(k) + 1)
         elif type(v) == list:
             if type(v[0]) == dict:
-                print ' ' * indent, str(k) + ": "
+                print " " * indent, str(k) + ": "
                 pretty_print(v[0], indent + len(k) + 1)
             else:
-                print ' ' * indent, str(k) + ": " + str(v[0])
+                print " " * indent, str(k) + ": " + str(v[0])
         else:
-            print ' ' * indent, str(k) + ": " + str(v)
+            print " " * indent, str(k) + ": " + str(v)
 
 
 def less(text):
     """Filter text in less editor."""
     try:
-        pager = subprocess.Popen(['less', '-F', '-R', '-S', '-X', '-K', '-N'], stdin=subprocess.PIPE, stdout=sys.stdout)
+        pager = subprocess.Popen(["less", "-F", "-R", "-S", "-X", "-K", "-N"], stdin=subprocess.PIPE, stdout=sys.stdout)
         for line in text:
             pager.stdin.write(line)
         pager.communicate()[0]
@@ -90,16 +90,16 @@ def isopen(ip, port):
         s.connect((ip, port))
         s.settimeout(None)
         s.shutdown(2)
-        print "Connected to: " + str(ip) + " on port: " + str(port)
+        print "Connected to: {0} on port: {1}".format(str(ip), str(port))
         return True
     except socket.error as e:
-        print "Problem with connection to: " + str(ip) + " on port: " + str(port) + ". Error code:", e
+        print "Problem with connection to: {0} on port: {1}. Error code:".format(str(ip), str(port)), e
         return False
 
 
 def nodelist():
     nodes = []
-    for i in es.cat.nodes(h="host").split('\n'):
+    for i in es.cat.nodes(h="host").split("\n"):
         if i:
             nodes.append(i)
     return nodes
@@ -107,7 +107,7 @@ def nodelist():
 
 def indexlist():
     indices = []
-    for i in es.cat.indices(h="index").split('\n'):
+    for i in es.cat.indices(h="index").split("\n"):
         if i:
             indices.append(i.replace(" ", ""))
     return indices
@@ -125,13 +125,14 @@ class ES(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = "es:~$ "
-        self.intro = BColors.BOLD + "\n### Welcome to elasticsearch console!\n### For more information, type 'help'\n" + BColors.ENDC
+        self.intro = "{0}\n### Welcome to elasticsearch console!\n### For more information, type \'help\'\n{1}".format(
+            BColors.BOLD, BColors.ENDC)
         self.ruler = "-"
         self.doc_header = "Available commands (type help <topic>):"
 
     def do_prompt(self, args):
         """Change the interactive prompt."""
-        self.prompt = args + ":~$ "
+        self.prompt = "{0}:~$ ".format(args)
 
     def preloop(self):
         """Initialization before prompting user for commands."""
@@ -226,7 +227,7 @@ class Show(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = "es:show~$ "
-        self.intro = BColors.BOLD + "\nEntering to cluster information menu.\n" + BColors.ENDC
+        self.intro = "{0}\nEntering to cluster information menu.\n{1}".format(BColors.BOLD, BColors.ENDC)
         self.ruler = "-"
         self.doc_header = "Available commands (type help <topic>):"
 
@@ -316,7 +317,7 @@ class Show(cmd.Cmd):
     def do_cluster_info(self, args):
         """Get the basic info from the current cluster."""
         for key, value in es.info().iteritems():
-            print str(key) + ' : ' + str(value)
+            print "{0} : {1}".format(str(key), str(value))
 
     def do_cluster_master(self, args):
         """Displays the master’s node ID, bound IP address, and node name."""
@@ -325,61 +326,61 @@ class Show(cmd.Cmd):
     def do_cluster_health(self, args):
         """Get a very simple status on the health of the cluster."""
         for key, value in es.cluster.health().iteritems():
-            print str(key) + ': ' + str(value)
+            print "{0}: {1}".format(str(key), str(value))
 
     def do_cluster_settings(self, args):
         """Get cluster settings."""
         pretty = es.cluster.get_settings(flat_settings=True)
         for i in pretty.iteritems():
-            print str(i[0]) + ":"
+            print "{0}:".format(str(i[0]))
             for x, y in sorted(i[1].items()):
-                print "            " + str(x) + ": " + str(y)
+                print "            {0}: {1}".format(str(x), str(y))
 
     def do_cluster_stats(self, args):
         """The Cluster Stats allows to retrieve statistics from a cluster wide perspective."""
         pretty = es.cluster.stats(flat_settings=True, human=True)
-        print "cluster_name: " + str(pretty['cluster_name'])
-        print "status: " + str(pretty['status'])
-        print "timestamp: " + str(pretty['timestamp'])
+        print "cluster_name: {0}".format(str(pretty["cluster_name"]))
+        print "status: {0}".format(str(pretty["status"]))
+        print "timestamp: {0}".format(str(pretty["timestamp"]))
         print "nodes:"
-        pretty_print(pretty['nodes'], 6)
+        pretty_print(pretty["nodes"], 6)
         print " "
         print "indices:"
-        pretty_print(pretty['indices'], 8)
+        pretty_print(pretty["indices"], 8)
         print " "
 
     def do_cluster_tasks(self, args):
         """Show all pending cluster tasks which have not yet been executed."""
-        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
+        task_list = requests.get("{0}/_cat/pending_tasks?v=True".format(host))
         less(task_list.content)
 
     def do_cluster_tasks_urgent(self, args):
         """Show urgent cluster tasks which have not yet been executed."""
-        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
-        print task_list.content.split('\n')[0]
-        for line in task_list.content.split('\n'):
+        task_list = requests.get("{0}/_cat/pending_tasks?v=True".format(host))
+        print task_list.content.split("\n")[0]
+        for line in task_list.content.split("\n"):
             if "URGENT" in line:
                 print line
 
     def do_cluster_tasks_high(self, args):
         """Show high cluster tasks which have not yet been executed."""
-        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
-        print task_list.content.split('\n')[0]
-        for line in task_list.content.split('\n'):
+        task_list = requests.get("{0}/_cat/pending_tasks?v=True".format(host))
+        print task_list.content.split("\n")[0]
+        for line in task_list.content.split("\n"):
             if "HIGH" in line:
                 print line
 
     def do_cluster_tasks_normal(self, args):
         """Show normal cluster tasks which have not yet been executed."""
-        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
-        print task_list.content.split('\n')[0]
-        for line in task_list.content.split('\n'):
+        task_list = requests.get("{0}/_cat/pending_tasks?v=True".format(host))
+        print task_list.content.split("\n")[0]
+        for line in task_list.content.split("\n"):
             if "NORMAL" in line:
                 print line
 
     def do_cluster_tasks_stats(self, args):
         """Show cluster tasks statistics."""
-        task_list = requests.get(url + '/_cat/pending_tasks?v=True')
+        task_list = requests.get("{0}/_cat/pending_tasks?v=True".format(host))
         ustats = re.compile("URGENT")
         umatch = ustats.findall(task_list.content)
         hstats = re.compile("HIGH")
@@ -418,9 +419,9 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 if es.indices.exists(index=esindex):
-                    print esindex + " exists."
+                    print "{0} exists.".format(esindex)
             except TypeError:
-                print esindex + " don't exist."
+                print "{0} don't exist.".format(esindex)
             except Exception as e:
                 print e
         else:
@@ -476,24 +477,24 @@ class Show(cmd.Cmd):
     def do_indices_red(self, args):
         """Show indices in red state."""
         index_list = es.cat.indices(v=True)
-        print index_list.split('\n')[0]
-        for line in index_list.split('\n'):
+        print index_list.split("\n")[0]
+        for line in index_list.split("\n"):
             if "red" in line:
                 print line
 
     def do_indices_yellow(self, args):
         """Show indices in yellow state."""
         index_list = es.cat.indices(v=True)
-        print index_list.split('\n')[0]
-        for line in index_list.split('\n'):
+        print index_list.split("\n")[0]
+        for line in index_list.split("\n"):
             if "yellow" in line:
                 print line
 
     def do_indices_green(self, args):
         """Show indices in green state."""
         index_list = es.cat.indices(v=True)
-        print index_list.split('\n')[0]
-        for line in index_list.split('\n'):
+        print index_list.split("\n")[0]
+        for line in index_list.split("\n"):
             if "green" in line:
                 print line
 
@@ -506,8 +507,8 @@ class Show(cmd.Cmd):
         ymatch = ystats.findall(index_list)
         gstats = re.compile("green")
         gmatch = gstats.findall(index_list)
-        print "Indices states: RED: " + str(len(rmatch)) + " YELLOW: " + str(len(ymatch)) + " GREEN: " + str(
-            len(gmatch))
+        print "Indices states: RED: {0} YELLOW: {1} GREEN: {2}".format(str(len(rmatch)), str(len(ymatch)), str(
+            len(gmatch)))
 
     def do_indices_size(self, args):
         """Show indices size statistics."""
@@ -559,10 +560,10 @@ class Show(cmd.Cmd):
         else:
             pretty = es.indices.get_settings(flat_settings=True)
         for i in pretty.iteritems():
-            print "name: " + i[0]
+            print "name: {0}".format(i[0])
             print "      settings: "
-            for x, y in sorted(i[1]['settings'].items()):
-                print "               " + str(x) + ": " + str(y)
+            for x, y in sorted(i[1]["settings"].items()):
+                print "               {0}: {1}".format(str(x), str(y))
             print " "
 
     def complete_indices_settings(self, text, line, begidx, endidx):
@@ -576,10 +577,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="store")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary store: "
                     pretty_print(i[1], 13)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total store: "
                     pretty_print(i[1], 13)
             except TypeError:
@@ -590,10 +591,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="store")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary store: "
                     pretty_print(i[1], 13)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total store: "
                     pretty_print(i[1], 13)
             except TypeError:
@@ -612,10 +613,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="indexing")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary indexing: "
                     pretty_print(i[1], 16)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total indexing: "
                     pretty_print(i[1], 16)
             except TypeError:
@@ -626,10 +627,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="indexing")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary indexing: "
                     pretty_print(i[1], 16)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total indexing: "
                     pretty_print(i[1], 16)
             except TypeError:
@@ -648,10 +649,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="get")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary get: "
                     pretty_print(i[1], 11)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total get: "
                     pretty_print(i[1], 11)
             except TypeError:
@@ -662,10 +663,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="get")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary get: "
                     pretty_print(i[1], 11)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total get: "
                     pretty_print(i[1], 11)
             except TypeError:
@@ -684,10 +685,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="search")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary search: "
                     pretty_print(i[1], 14)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total search: "
                     pretty_print(i[1], 14)
             except TypeError:
@@ -698,10 +699,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="search")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary search: "
                     pretty_print(i[1], 14)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total search: "
                     pretty_print(i[1], 14)
             except TypeError:
@@ -720,10 +721,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="completion")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary completion: "
                     pretty_print(i[1], 18)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total completion: "
                     pretty_print(i[1], 18)
             except TypeError:
@@ -734,10 +735,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="completion")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary completion: "
                     pretty_print(i[1], 18)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total completion: "
                     pretty_print(i[1], 18)
             except TypeError:
@@ -756,10 +757,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="fielddata")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary fielddata: "
                     pretty_print(i[1], 17)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total fielddata: "
                     pretty_print(i[1], 17)
             except TypeError:
@@ -770,10 +771,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="fielddata")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary fielddata: "
                     pretty_print(i[1], 17)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total fielddata: "
                     pretty_print(i[1], 17)
             except TypeError:
@@ -792,10 +793,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="flush")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary flush: "
                     pretty_print(i[1], 13)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total flush: "
                     pretty_print(i[1], 13)
             except TypeError:
@@ -806,10 +807,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="flush")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary flush: "
                     pretty_print(i[1], 13)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total flush: "
                     pretty_print(i[1], 13)
             except TypeError:
@@ -828,10 +829,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="query_cache")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary query_cache: "
                     pretty_print(i[1], 19)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total query_cache: "
                     pretty_print(i[1], 19)
             except TypeError:
@@ -842,10 +843,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="query_cache")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary query_cache: "
                     pretty_print(i[1], 19)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total query_cache: "
                     pretty_print(i[1], 19)
             except TypeError:
@@ -864,10 +865,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="refresh")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary refresh: "
                     pretty_print(i[1], 15)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total refresh: "
                     pretty_print(i[1], 15)
             except TypeError:
@@ -878,10 +879,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="refresh")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary refresh: "
                     pretty_print(i[1], 15)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total refresh: "
                     pretty_print(i[1], 15)
             except TypeError:
@@ -900,10 +901,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="suggest")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary suggest: "
                     pretty_print(i[1], 15)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total suggest: "
                     pretty_print(i[1], 15)
             except TypeError:
@@ -914,10 +915,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="suggest")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary suggest: "
                     pretty_print(i[1], 15)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total suggest: "
                     pretty_print(i[1], 15)
             except TypeError:
@@ -936,10 +937,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="warmer")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary warmer: "
                     pretty_print(i[1], 14)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total warmer: "
                     pretty_print(i[1], 14)
             except TypeError:
@@ -950,10 +951,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="warmer")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary warmer: "
                     pretty_print(i[1], 14)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total warmer: "
                     pretty_print(i[1], 14)
             except TypeError:
@@ -972,10 +973,10 @@ class Show(cmd.Cmd):
         if esindex:
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="translog")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary translog: "
                     pretty_print(i[1], 14)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total translog: "
                     pretty_print(i[1], 14)
             except TypeError:
@@ -986,10 +987,10 @@ class Show(cmd.Cmd):
             esindex = "_all"
             try:
                 pretty = es.indices.stats(index=esindex, human=True, metric="translog")
-                for i in sorted(pretty['_all']['primaries'].iteritems()):
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
                     print "primary translog: "
                     pretty_print(i[1], 14)
-                for i in sorted(pretty['_all']['total'].iteritems()):
+                for i in sorted(pretty["_all"]["total"].iteritems()):
                     print "total translog: "
                     pretty_print(i[1], 14)
             except TypeError:
@@ -1055,32 +1056,32 @@ class Show(cmd.Cmd):
     def do_shards_unassigned(self, args):
         """List unassigned shards."""
         shard_list = es.cat.shards(v=True)
-        print shard_list.split('\n')[0]
-        for line in shard_list.split('\n'):
+        print shard_list.split("\n")[0]
+        for line in shard_list.split("\n"):
             if "UNASSIGNED" in line:
                 print line
 
     def do_shards_relocating(self, args):
         """List relocating shards."""
         shard_list = es.cat.shards(v=True)
-        print shard_list.split('\n')[0]
-        for line in shard_list.split('\n'):
+        print shard_list.split("\n")[0]
+        for line in shard_list.split("\n"):
             if "RELOCATING" in line:
                 print line
 
     def do_shards_initializing(self, args):
         """List initializing shards."""
         shard_list = es.cat.shards(v=True)
-        print shard_list.split('\n')[0]
-        for line in shard_list.split('\n'):
+        print shard_list.split("\n")[0]
+        for line in shard_list.split("\n"):
             if "INITIALIZING" in line:
                 print line
 
     def do_shards_started(self, args):
         """List started shards."""
         shard_list = es.cat.shards(v=True)
-        print shard_list.split('\n')[0]
-        for line in shard_list.split('\n'):
+        print shard_list.split("\n")[0]
+        for line in shard_list.split("\n"):
             if "STARTED" in line:
                 print line
 
@@ -1285,12 +1286,12 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.info(metric="settings", flat_settings=True, human=True)
-        for i in pretty['nodes'].iteritems():
-            print "name: " + i[1]['name']
-            print "ip: " + i[1]['ip']
+        for i in pretty["nodes"].iteritems():
+            print "name: {0}".format(i[1]["name"])
+            print "ip: {0}".format(i[1]["ip"])
             print "    settings: "
-            for x, y in sorted(i[1]['settings'].items()):
-                print "             " + str(x) + ": " + str(y)
+            for x, y in sorted(i[1]["settings"].items()):
+                print "             {0}: {1}".format(str(x), str(y))
             print " "
 
     def complete_nodes_settings(self, text, line, begidx, endidx):
@@ -1308,19 +1309,19 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.info(metric="os", node_id=node, flat_settings=True, human=True)
-        for i in pretty['nodes'].iteritems():
-            print "name: " + i[1]['name']
-            print "ip: " + i[1]['ip']
+        for i in pretty["nodes"].iteritems():
+            print "name: {0}".format(i[1]["name"])
+            print "ip: {0}".format(i[1]["ip"])
             print "    hardware: "
             print "             cpu: "
-            for x, y in i[1]['os']['cpu'].items():
-                print "                  " + str(x) + ": " + str(y)
+            for x, y in i[1]["os"]["cpu"].items():
+                print "                  {0}: {1}".format(str(x), str(y))
             print "             mem: "
-            for x, y in i[1]['os']['mem'].items():
-                print "                  " + str(x) + ": " + str(y)
+            for x, y in i[1]["os"]["mem"].items():
+                print "                  {0}: {1}".format(str(x), str(y))
             print "             swp: "
-            for x, y in i[1]['os']['swap'].items():
-                print "                  " + str(x) + ": " + str(y)
+            for x, y in i[1]["os"]["swap"].items():
+                print "                  {0}: {1}".format(str(x), str(y))
             print " "
 
     def complete_nodes_hardware(self, text, line, begidx, endidx):
@@ -1338,16 +1339,16 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.stats(metric="fs", human=True)
-        for i in pretty['nodes'].iteritems():
-            print "name: " + i[1]['name']
-            if i[1]['fs']['data']:
+        for i in pretty["nodes"].iteritems():
+            print "name: {0}".format(i[1]["name"])
+            if i[1]["fs"]["data"]:
                 print "      data:"
-                for k, v in sorted(i[1]['fs']['data'][0].items()):
-                    print "            " + str(k) + ": " + str(v)
+                for k, v in sorted(i[1]["fs"]["data"][0].items()):
+                    print "            {0}: {1}".format(str(k), str(v))
                 print " "
             else:
                 print "      data:"
-                print "           I'm client node. I don't have fs."
+                print "           I'm client/tribe node. I don't have fs."
                 print " "
 
     def complete_nodes_fs(self, text, line, begidx, endidx):
@@ -1365,11 +1366,11 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.stats(metric="jvm", human=True)
-        for i in sorted(pretty['nodes'].iteritems()):
-            print "name: " + i[1]['name']
+        for i in sorted(pretty["nodes"].iteritems()):
+            print "name: {0}".format(i[1]["name"])
             print "      jvm:"
             print "          mem:"
-            pretty_print(i[1]['jvm']['mem'], 13)
+            pretty_print(i[1]["jvm"]["mem"], 13)
             print " "
 
     def complete_nodes_jvm(self, text, line, begidx, endidx):
@@ -1387,11 +1388,11 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.stats(metric="http", human=True)
-        for i in pretty['nodes'].iteritems():
-            print "name: " + i[1]['name']
+        for i in pretty["nodes"].iteritems():
+            print "name: {0}".format(i[1]["name"])
             print "      http:"
-            for k, v in sorted(i[1]['http'].items()):
-                print "            " + str(k) + ": " + str(v)
+            for k, v in sorted(i[1]["http"].items()):
+                print "            {0}: {1}".format(str(k), str(v))
             print " "
 
     def complete_nodes_http(self, text, line, begidx, endidx):
@@ -1409,10 +1410,10 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.stats(metric="transport", human=True)
-        for i in sorted(pretty['nodes'].iteritems()):
-            print "name: " + i[1]['name']
+        for i in sorted(pretty["nodes"].iteritems()):
+            print "name: {0}".format(i[1]["name"])
             print "      transport:"
-            pretty_print(i[1]['transport'], 15)
+            pretty_print(i[1]["transport"], 15)
             print " "
 
     def complete_nodes_transport(self, text, line, begidx, endidx):
@@ -1430,11 +1431,11 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.stats(metric="network", human=True)
-        for i in sorted(pretty['nodes'].iteritems()):
-            print "name: " + i[1]['name']
+        for i in sorted(pretty["nodes"].iteritems()):
+            print "name: ".format(i[1]["name"])
             print "      network:"
             print "              tcp:"
-            pretty_print(i[1]['network']['tcp'], 17)
+            pretty_print(i[1]["network"]["tcp"], 17)
             print " "
 
     def complete_nodes_network(self, text, line, begidx, endidx):
@@ -1452,18 +1453,18 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.stats(metric="breaker", human=True)
-        for i in pretty['nodes'].iteritems():
-            print "name: " + i[1]['name']
+        for i in pretty["nodes"].iteritems():
+            print "name: ".format(i[1]["name"])
             print "      breakers:"
             print "               fielddata:"
-            for x, y in sorted(i[1]['breakers']['fielddata'].items()):
-                print "                         " + str(x) + ": " + str(y)
+            for x, y in sorted(i[1]["breakers"]["fielddata"].items()):
+                print "                         {0}: {1}".format(str(x), str(y))
             print "               request:"
-            for x, y in sorted(i[1]['breakers']['request'].items()):
-                print "                         " + str(x) + ": " + str(y)
+            for x, y in sorted(i[1]["breakers"]["request"].items()):
+                print "                         {0}: {1}".format(str(x), str(y))
             print "               parent:"
-            for x, y in sorted(i[1]['breakers']['parent'].items()):
-                print "                         " + str(x) + ": " + str(y)
+            for x, y in sorted(i[1]["breakers"]["parent"].items()):
+                print "                         {0}: {1}".format(str(x), str(y))
             print " "
 
     def complete_nodes_breaker(self, text, line, begidx, endidx):
@@ -1482,10 +1483,10 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.stats(metric="indices", human=True)
-        for i in sorted(pretty['nodes'].iteritems()):
-            print "name: " + i[1]['name']
+        for i in sorted(pretty["nodes"].iteritems()):
+            print "name: {0}".format(i[1]["name"])
             print "     indices:"
-            pretty_print(i[1]['indices'], 13)
+            pretty_print(i[1]["indices"], 13)
             print " "
 
     def complete_nodes_indices(self, text, line, begidx, endidx):
@@ -1503,10 +1504,10 @@ class Show(cmd.Cmd):
                 print e
         else:
             pretty = es.nodes.stats(metric="process", human=True)
-        for i in sorted(pretty['nodes'].iteritems()):
-            print "name: " + i[1]['name']
+        for i in sorted(pretty["nodes"].iteritems()):
+            print "name: {0}".format(i[1]["name"])
             print "     process:"
-            pretty_print(i[1]['process'], 13)
+            pretty_print(i[1]["process"], 13)
 
     def complete_nodes_process(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1523,7 +1524,7 @@ class Exec(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = "es:exec~$ "
-        self.intro = BColors.BOLD + "\nEntering to cluster execution menu.\n" + BColors.ENDC
+        self.intro = "{0}\nEntering to cluster execution menu.\n{1}".format(BColors.BOLD, BColors.ENDC)
         self.ruler = "-"
         self.doc_header = "Available commands (type help <topic>):"
 
@@ -1801,32 +1802,32 @@ class Exec(cmd.Cmd):
 
 
 class BColors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print "No elasticsearch server specified. Using default localhost." + BColors.ENDC
+        print "No elasticsearch server specified. Using default localhost.{0}".format(BColors.ENDC)
         if isopen("127.0.0.1", 9200):
-            host = '127.0.0.1'
+            host = "127.0.0.1"
         else:
             sys.exit(1)
     elif len(sys.argv) == 2:
         if check_hostname(sys.argv[1]):
-            print BColors.HEADER + "Connecting to elasticsearch server at address: %s" % sys.argv[1] + BColors.ENDC
+            print BColors.HEADER + u"Connecting to elasticsearch server at address: {0:s}".format(sys.argv[1]) + BColors.ENDC
             if isopen(sys.argv[1], 9200):
                 host = sys.argv[1]
             else:
                 sys.exit(1)
         elif check_ip(sys.argv[1]):
-            print BColors.HEADER + "Connecting to elasticsearch server at address: %s" % sys.argv[1] + BColors.ENDC
+            print BColors.HEADER + u"Connecting to elasticsearch server at address: {0:s}".format(sys.argv[1]) + BColors.ENDC
             if isopen(sys.argv[1], 9200):
                 host = sys.argv[1]
             else:
@@ -1837,15 +1838,17 @@ if __name__ == '__main__':
         sys.exit("Usage: " + sys.argv[0] + " [ES master IP/DNS address]")
     try:
         # Autocomplete for Mac OS X
-        if 'libedit' in readline.__doc__:
+        if "libedit" in readline.__doc__:
             readline.parse_and_bind("bind ^I rl_complete")
         else:
             readline.parse_and_bind("tab: complete")
-
+        if "ESAUTH" in os.environ:
+            host = "http://{0}@{1}:9200".format(os.environ["ESAUTH"], host)
+        else:
+            host = "http://{0}:9200".format(host)
         es = elasticsearch.Elasticsearch([host], sniff_on_start=False, sniff_on_connection_fail=False,
                                          sniffer_timeout=None, timeout=300, retry_on_timeout=True, retry_on_status=True,
                                          max_retries=3)
-        url = 'http://' + host + ':9200'
         esconsole = ES()
         esconsole.cmdloop()
     except KeyboardInterrupt:

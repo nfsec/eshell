@@ -3,7 +3,7 @@
 EShell is a Python script that allows you to interact from command-line with a running [elasticsearch](https://www.elastic.co/products/elasticsearch)
 cluster using the APIs over HTTP. HTTP Basic Authentication is supported by the environment variable **$ESAUTH** in the format: **login:password**.
 
-> v0.3.11 tested under Elasticsearch v1.7.5
+> v0.3.12 tested under Elasticsearch v1.7.5
 
 **Example:**
 
@@ -41,6 +41,12 @@ es:show~$ shards_allocation esdatanode1.lan
 shards disk.used disk.avail disk.total disk.percent host             ip          node
    744     3.7tb      4.2tb        8tb           46 esdatanode1.lan  10.1.2.1    esdatanode1.lan
 ```
+
+**Changelog (v0.3.12):**
+
+- New "show" commands: cluster_version, cluster_nodes, cluster_blocks, indices_head, indices_merge
+- Fixed: indices_status
+
 **Changelog (v0.3.11):**
 
 - Added http basic authentication by $ESAUTH environment variable. Thanks to: [geekpete](https://github.com/geekpete).

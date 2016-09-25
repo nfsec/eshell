@@ -4,8 +4,8 @@
 # title            : eShell
 # description      : Elasticsearch API avaiable via interactive shell.
 # author           : Patryk "agresor" Krawaczynski
-# update date      : 24.06.2016
-# version          : 0.3.11
+# update date      : 25.09.2016
+# version          : 0.3.12
 # license          : Apache License (2.0)
 # usage            : ./eshell [es master ip | es master hostname]
 # python version   : 2.7.10
@@ -328,6 +328,24 @@ class Show(cmd.Cmd):
         for key, value in es.cluster.health().iteritems():
             print "{0}: {1}".format(str(key), str(value))
 
+    def do_cluster_version(self, args):
+        """Shows the cluster state version."""
+        print es.cluster.state(metric="version", flat_settings=True)
+
+    def do_cluster_nodes(self, args):
+        """Shows the nodes part of the response."""
+        pretty = es.cluster.state(metric="nodes", flat_settings=True)
+        print "cluster: {0}".format(str(pretty["cluster_name"]))
+        print "nodes:"
+        pretty_print(pretty["nodes"], 6)
+
+    def do_cluster_blocks(self, args):
+        """Shows the blocks part of the response."""
+        pretty = es.cluster.state(metric="blocks", flat_settings=True)
+        print "cluster: {0}".format(str(pretty["cluster_name"]))
+        print "blocks:"
+        pretty_print(pretty["blocks"], 6)
+
     def do_cluster_settings(self, args):
         """Get cluster settings."""
         pretty = es.cluster.get_settings(flat_settings=True)
@@ -412,6 +430,19 @@ class Show(cmd.Cmd):
     def complete_indices(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
 
+    def do_indices_head(self, esindex):
+        """Show first 15 documents in index."""
+        if esindex:
+            try:
+                head_list = requests.get("{0}/{1}/_search?pretty=true&size=15&q=*:*".format(host, esindex))
+                less(head_list.content)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+           print "Enter the name of the index as an argument."
+
     def do_indices_exists(self, esindex):
         """Return a information indicating whether given index exists.
         - indices_exists <index> - a name of index to check (default)
@@ -479,7 +510,7 @@ class Show(cmd.Cmd):
         index_list = es.cat.indices(v=True)
         print index_list.split("\n")[0]
         for line in index_list.split("\n"):
-            if "red" in line:
+            if "red " in line:
                 print line
 
     def do_indices_yellow(self, args):
@@ -487,7 +518,7 @@ class Show(cmd.Cmd):
         index_list = es.cat.indices(v=True)
         print index_list.split("\n")[0]
         for line in index_list.split("\n"):
-            if "yellow" in line:
+            if "yellow " in line:
                 print line
 
     def do_indices_green(self, args):
@@ -495,17 +526,17 @@ class Show(cmd.Cmd):
         index_list = es.cat.indices(v=True)
         print index_list.split("\n")[0]
         for line in index_list.split("\n"):
-            if "green" in line:
+            if "green " in line:
                 print line
 
     def do_indices_status(self, args):
         """Show indices state statistics."""
         index_list = es.cat.indices(v=True)
-        rstats = re.compile("red")
+        rstats = re.compile("red ")
         rmatch = rstats.findall(index_list)
-        ystats = re.compile("yellow")
+        ystats = re.compile("yellow ")
         ymatch = ystats.findall(index_list)
-        gstats = re.compile("green")
+        gstats = re.compile("green ")
         gmatch = gstats.findall(index_list)
         print "Indices states: RED: {0} YELLOW: {1} GREEN: {2}".format(str(len(rmatch)), str(len(ymatch)), str(
             len(gmatch)))
@@ -819,6 +850,42 @@ class Show(cmd.Cmd):
                 print e
 
     def complete_indices_flush(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_merge(self, esindex):
+        """Show merge statistics for the index.
+        - indices_merge <index> - show primary and total merge for <index>.
+        - indices_merge         - show primary and total merge for all indices (default).
+        """
+        if esindex:
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="merge")
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
+                    print "primary merge: "
+                    pretty_print(i[1], 13)
+                for i in sorted(pretty["_all"]["total"].iteritems()):
+                    print "total merge: "
+                    pretty_print(i[1], 13)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+        else:
+            esindex = "_all"
+            try:
+                pretty = es.indices.stats(index=esindex, human=True, metric="merge")
+                for i in sorted(pretty["_all"]["primaries"].iteritems()):
+                    print "primary merge: "
+                    pretty_print(i[1], 13)
+                for i in sorted(pretty["_all"]["total"].iteritems()):
+                    print "total merge: "
+                    pretty_print(i[1], 13)
+            except TypeError:
+                print "Index not found!"
+            except Exception as e:
+                print e
+
+    def complete_indices_merge(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
 
     def do_indices_query_cache(self, esindex):

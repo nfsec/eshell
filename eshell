@@ -414,6 +414,12 @@ class Show(cmd.Cmd):
         """
         return True
 
+    def do_leave(self, line):
+        """
+        Leave submenu.
+        """
+        return True
+
     def do_exec(self, line):
         """
         Execute command in cluster execution menu.
@@ -2794,6 +2800,12 @@ class Exec(cmd.Cmd):
         """
         return True
 
+    def do_leave(self, line):
+        """
+        Leave submenu.
+        """
+        return True
+
     def do_show(self, line):
         """Execute command in cluster information menu."""
         Show().onecmd(line)
@@ -2848,13 +2860,39 @@ class Exec(cmd.Cmd):
                     print()
                     print("Setting: " + setme)
                     print()
-                    es.cluster.put_settings(body=setme, flat_settings=True, timeout="300s")
+                    print(es.cluster.put_settings(body=setme, flat_settings=True, timeout="300s"))
+                    print()
                 except Exception as e:
                     print(e)
         else:
             try:
                 print()
                 print("Please enter setting and its value.")
+                print()
+            except Exception as e:
+                print(e)
+
+    def do_indices_search(self, args):
+        """
+        Execute a search query and get back search hits that match the query.
+        $ indices_search [index name] *:* 10 - return 10 hits of query index in the Lucene query string syntax.
+
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 3:
+                print()
+                print("Invalid number of arguments. Please enter index, query and number of hits to return.")
+                print()
+            else:
+                try:
+                    less(json.dumps(es.search(index=parms[0], q=parms[1], size=parms[2]), indent=2))
+                except Exception as e:
+                    print(e)
+        else:
+            try:
+                print()
+                print("Please enter index, query and number of hits to return.")
                 print()
             except Exception as e:
                 print(e)
@@ -2873,7 +2911,9 @@ class Exec(cmd.Cmd):
             print()
         else:
             try:
-                es.indices.forcemerge(index=parms[0], max_num_segments=parms[1])
+                print()
+                print(es.indices.forcemerge(index=parms[0], max_num_segments=parms[1]))
+                print()
             except Exception as e:
                 print(e)
 
@@ -2887,7 +2927,9 @@ class Exec(cmd.Cmd):
         """
         if args:
             try:
-                es.indices.delete(index=args, master_timeout="300s")
+                print()
+                print(es.indices.delete(index=args, master_timeout="300s"))
+                print()
             except Exception as e:
                 print(e)
         else:
@@ -2906,7 +2948,9 @@ class Exec(cmd.Cmd):
         """
         if args:
             try:
-                es.indices.close(index=args, master_timeout="300s")
+                print()
+                print(es.indices.close(index=args, master_timeout="300s"))
+                print()
             except Exception as e:
                 print(e)
         else:
@@ -2924,7 +2968,9 @@ class Exec(cmd.Cmd):
         """
         if args:
             try:
-                es.indices.open(index=args, master_timeout="300s")
+                print()
+                print(es.indices.open(index=args, master_timeout="300s"))
+                print()
             except Exception as e:
                 print(e)
         else:
@@ -2943,12 +2989,15 @@ class Exec(cmd.Cmd):
         """
         if args:
             try:
-                es.indices.clear_cache(index=args)
+                print()
+                print(es.indices.clear_cache(index=args))
+                print()
             except Exception as e:
                 print(e)
         else:
             try:
-                es.indices.clear_cache()
+                print()
+                print(es.indices.clear_cache())
             except Exception as e:
                 print(e)
 
@@ -2963,12 +3012,16 @@ class Exec(cmd.Cmd):
         """
         if args:
             try:
-                es.indices.clear_cache(index=args, fielddata=True)
+                print()
+                print(es.indices.clear_cache(index=args, fielddata=True))
+                print()
             except Exception as e:
                 print(e)
         else:
             try:
-                es.indices.clear_cache(fielddata=True)
+                print()
+                print(es.indices.clear_cache(fielddata=True))
+                print()
             except Exception as e:
                 print(e)
 
@@ -2983,12 +3036,16 @@ class Exec(cmd.Cmd):
         """
         if args:
             try:
-                es.indices.clear_cache(index=args, query=True)
+                print()
+                print(es.indices.clear_cache(index=args, query=True))
+                print()
             except Exception as e:
                 print(e)
         else:
             try:
-                es.indices.clear_cache(query=True)
+                print()
+                print(es.indices.clear_cache(query=True))
+                print()
             except Exception as e:
                 print(e)
 
@@ -3003,12 +3060,16 @@ class Exec(cmd.Cmd):
         """
         if args:
             try:
-                es.indices.clear_cache(index=args, recycler=True)
+                print()
+                print(es.indices.clear_cache(index=args, recycler=True))
+                print()
             except Exception as e:
                 print(e)
         else:
             try:
-                es.indices.clear_cache(recycler=True)
+                print()
+                print(es.indices.clear_cache(recycler=True))
+                print()
             except Exception as e:
                 print(e)
 
@@ -3023,12 +3084,16 @@ class Exec(cmd.Cmd):
         """
         if args:
             try:
-                es.indices.clear_cache(index=args, request=True)
+                print()
+                print(es.indices.clear_cache(index=args, request=True))
+                print()
             except Exception as e:
                 print(e)
         else:
             try:
-                es.indices.clear_cache(request=True)
+                print()
+                print(es.indices.clear_cache(request=True))
+                print()
             except Exception as e:
                 print(e)
 

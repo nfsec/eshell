@@ -25,6 +25,7 @@ import elasticsearch
 import requests
 import readline
 import operator
+import traceback
 
 
 # Helpers
@@ -63,7 +64,6 @@ def less(text):
         pager = subprocess.Popen(["less", "-F", "-R", "-S", "-X", "-K", "-N"], stdin=subprocess.PIPE, stdout=sys.stdout)
         for line in text:
             pager.stdin.write(line.encode("utf-8"))
-        pager.communicate()[0]
         pager.stdin.close()
         pager.wait()
     except IOError:
@@ -452,35 +452,19 @@ class Show(cmd.Cmd):
                     print()
                     pretty_print(es.cluster.allocation_explain(body=showme), indent=2)
                     print()
-                except Exception as e:
-                    print(e)
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.cluster.allocation_explain(include_disk_info=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
-
-    def do_cluster_templates(self, args):
-        """
-        The cluster_templates command provides information about existing templates.
-        $ cluster_templates [template name] - show template information in json format.
-        $ cluster_templates - show all templates in cluster.
-        """
-        if args:
-            try:
-                print()
-                print(json.dumps(es.indices.get_template(name=args), indent=4))
-                print()
-            except Exception as e:
-                print(e)
-        else:
-            try:
-                print()
-                print(es.cat.templates(v=True, s="name"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def do_cluster_repositories(self, args):
         """
@@ -489,8 +473,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.repositories(v=True, s="id"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_snapshots(self, args):
         """
@@ -501,8 +487,10 @@ class Show(cmd.Cmd):
             try:
                 print()
                 print(es.cat.snapshots(repository=args, ignore_unavailable=True, v=True, s="id"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             print()
             print("Please provide name of repository to show its snapshots. ")
@@ -518,8 +506,10 @@ class Show(cmd.Cmd):
                 print("\nUP!\n")
             else:
                 print("\nDOWN!\n")
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_info(self, args):
         """
@@ -529,8 +519,10 @@ class Show(cmd.Cmd):
             print()
             pretty_print(es.info(), indent=2)
             print()
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_master(self, args):
         """
@@ -539,8 +531,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.master(v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_health(self, args):
         """
@@ -556,8 +550,10 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.cluster.health(level="cluster"), indent=2)
                 print()
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_tasks(self, args):
         """
@@ -580,8 +576,10 @@ class Show(cmd.Cmd):
                 print()
                 less(es.cat.pending_tasks(v=True))
                 print()
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_tasks_stats(self, args):
         """Show cluster tasks statistics."""
@@ -610,8 +608,10 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.cluster.get_settings(flat_settings=True), indent=2)
                 print()
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_stats(self, args):
         """
@@ -630,8 +630,10 @@ class Show(cmd.Cmd):
             print("indices:")
             pretty_print(pretty["indices"], indent=8)
             print()
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_version(self, args):
         """
@@ -642,8 +644,10 @@ class Show(cmd.Cmd):
             pretty = es.cluster.state(metric="version", flat_settings=True)
             pretty_print(pretty, indent=2)
             print()
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_nodes(self, args):
         """
@@ -654,8 +658,10 @@ class Show(cmd.Cmd):
             pretty = es.cluster.state(metric="nodes", flat_settings=True)
             pretty_print(pretty, indent=2)
             print()
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_cluster_blocks(self, args):
         """
@@ -666,10 +672,62 @@ class Show(cmd.Cmd):
             pretty = es.cluster.state(metric="blocks", flat_settings=True)
             pretty_print(pretty, indent=2)
             print()
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     # Elasticsearch indices
+    def do_indices_field_stats(self, args):
+        """
+        The field stats api allows one to find statistical properties of a field without executing a search,
+        but looking up measurements that are natively available in the Lucene index.
+        $ indices_field_stats .kibana buildNum cluster - show buildNum field stats for the .kibana index on cluster level.
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 3:
+                print()
+                print("Invalid number of arguments. Please enter index name, field name and level (indices / cluster).")
+                print()
+            else:
+                try:
+                    print()
+                    print(json.dumps(es.field_stats(index=parms[0], fields=parms[1], level=parms[2]), indent=2))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Invalid number of arguments. Please enter index name and field name. (indices / cluster)")
+            print()
+
+    def do_indices_templates(self, args):
+        """
+        The indices_templates command provides information about existing indices templates.
+        $ indices_templates [template name] - show template information in json format.
+        $ indices_templates - show all templates for indices.
+        """
+        if args:
+            try:
+                print()
+                print(json.dumps(es.indices.get_template(name=args), indent=4))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            try:
+                print()
+                print(es.cat.templates(v=True, s="name"))
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+
     def do_indices_mapping(self, args):
         """
         Retrieve mapping definition of index or index/type.
@@ -681,8 +739,10 @@ class Show(cmd.Cmd):
                 pretty = es.indices.get_mapping(index=args)
                 print(json.dumps(pretty, indent=4))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             print("Please provide index name.")
 
@@ -700,15 +760,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="docs", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="docs", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_docs(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -724,15 +788,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="store", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="store", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_store(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -748,15 +816,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="indexing", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="indexing", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_indexing(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -772,15 +844,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="get", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="get", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_get(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -796,15 +872,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="search", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="search", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_search(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -820,15 +900,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="segments", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="segments", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_segments(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -844,15 +928,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="completion", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="completion", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_completion(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -868,15 +956,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="fielddata", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="fielddata", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_fielddata(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -892,15 +984,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="flush", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="flush", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_flush(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -916,15 +1012,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="merge", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="merge", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_merge(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -941,15 +1041,19 @@ class Show(cmd.Cmd):
                 pretty_print(es.indices.stats(index=args, level="indices", metric="request_cache", human=True),
                              indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="request_cache", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_request_cache(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -965,15 +1069,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="refresh", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="refresh", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_refresh(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -989,15 +1097,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="warmer", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="warmer", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_warmer(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1013,15 +1125,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.stats(index=args, level="indices", metric="translog", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.stats(level="indices", metric="translog", human=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_stats_translog(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1068,8 +1184,10 @@ class Show(cmd.Cmd):
                         len(almost_1gb)), str(len(almost_10gb)), str(
                         len(almost_100gb)), str(len(almost_other))))
             print()
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_indices_settings(self, args):
         """
@@ -1082,15 +1200,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.indices.get_settings(index=args, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.indices.get_settings(flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_settings(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1109,8 +1231,10 @@ class Show(cmd.Cmd):
             gmatch = gstats.findall(index_list)
             print("Indices states: RED: {0} YELLOW: {1} GREEN: {2}".format(str(len(rmatch)), str(len(ymatch)), str(
                 len(gmatch))))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_indices_exists(self, args):
         """
@@ -1126,8 +1250,10 @@ class Show(cmd.Cmd):
                 else:
                     print("{0} don't exists".format(args))
                     print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             print()
             print("No indices specified.")
@@ -1147,15 +1273,19 @@ class Show(cmd.Cmd):
                 print()
                 less(es.cat.segments(index=args, v=True, s="index"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 less(es.cat.segments(v=True, s="index"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_segments(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1173,15 +1303,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.cluster.state(metric="metadata", index=args, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.cluster.state(metric="metadata", flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_metadata(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1196,15 +1330,19 @@ class Show(cmd.Cmd):
             try:
                 print()
                 print(es.cat.indices(s="index", v=True, index=args))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 less(es.cat.indices(s="index", v=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1219,14 +1357,18 @@ class Show(cmd.Cmd):
             try:
                 print()
                 print(es.cat.indices(s="index", v=True, index=args, health="green"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.cat.indices(s="index", v=True, health="green"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_green(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1241,14 +1383,18 @@ class Show(cmd.Cmd):
             try:
                 print()
                 print(es.cat.indices(s="index", v=True, index=args, health="yellow"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.cat.indices(s="index", v=True, health="yellow"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_yellow(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1263,14 +1409,18 @@ class Show(cmd.Cmd):
             try:
                 print()
                 print(es.cat.indices(s="index", v=True, index=args, health="red"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.cat.indices(s="index", v=True, health="red"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_red(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1286,15 +1436,19 @@ class Show(cmd.Cmd):
                 print()
                 print(es.cat.aliases(name=args, v=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.cat.aliases(s="alias", v=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def do_indices_documents(self, args):
         """
@@ -1309,15 +1463,19 @@ class Show(cmd.Cmd):
                 print()
                 print(es.cat.count(index=args, v=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.cat.count(v=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_documents(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1346,15 +1504,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.cluster.state(metric="routing_table", index=args, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.cluster.state(metric="routing_table", flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_routing_table(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1367,18 +1529,22 @@ class Show(cmd.Cmd):
         """
         if args:
             try:
-                print("ok")
+                print()
                 pretty_print(es.cluster.health(level="indices", index=args), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
-                print("ee")
+                print()
                 pretty_print(es.cluster.health(level="indices"), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_health(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1393,16 +1559,20 @@ class Show(cmd.Cmd):
         if args:
             try:
                 print()
-                print(es.cat.shards(index=args, v=True))
-            except Exception as e:
-                print(e)
+                print(es.cat.shards(index=args, v=True, s="node"))
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 less(es.cat.shards(v=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_shards(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1489,16 +1659,20 @@ class Show(cmd.Cmd):
                 print()
                 print(es.cat.recovery(index=args, v=True, s="index",
                                       h="idx,sh,ti,ty,st,shost,snode,thost,tnode,rep,snap,f,fr,fp,tf,b,br,bp,tb,to,tor,top"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 less(es.cat.recovery(v=True, s="index",
                                      h="idx,sh,ti,ty,st,shost,snode,thost,tnode,rep,snap,f,fr,fp,tf,b,br,bp,tb,to,tor,top"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_shards_recovery(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1514,15 +1688,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.cluster.health(level="shards", index=args), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.cluster.health(level="shards"), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_shards_health(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -1542,8 +1720,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.plugins(v=True, s="name"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_settings(self, args):
         """
@@ -1563,15 +1743,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.info(node_id=args, metric="settings", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="settings", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_settings(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1596,15 +1780,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.info(node_id=args, metric="os", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="os", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_info_os(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1623,15 +1811,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.info(node_id=args, metric="process", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="process", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_info_process(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1645,15 +1837,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.info(node_id=args, metric="jvm", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="jvm", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_info_jvm(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1668,15 +1864,19 @@ class Show(cmd.Cmd):
                 pretty_print(es.nodes.info(node_id=args, metric="thread_pool", human=True, flat_settings=True),
                              indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="thread_pool", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_info_thread_pool(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1690,15 +1890,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.info(node_id=args, metric="transport", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="transport", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_info_transport(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1712,15 +1916,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.info(node_id=args, metric="http", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="http", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_info_http(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1741,15 +1949,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.info(node_id=args, metric="plugins", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="plugins", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_info_plugins(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1766,15 +1978,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.info(node_id=args, metric="ingest", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="ingest", human=True, flat_settings=True), indent=2)
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_info_ingest(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1794,15 +2010,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.info(node_id=args, metric="indices", human=True, flat_settings=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.info(metric="indices", human=True, flat_settings=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_info_indexing_buffer(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1819,15 +2039,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="indices", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="indices", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_indices(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1884,15 +2108,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="fs", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="fs", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_fs(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1908,15 +2136,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="http", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="http", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_http(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1932,15 +2164,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="jvm", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="jvm", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_jvm(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -1986,15 +2222,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="os", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="os", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_os(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -2010,15 +2250,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="process", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="process", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_process(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -2034,15 +2278,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="thread_pool", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="thread_pool", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_thread_pool(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -2058,15 +2306,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="transport", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="transport", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_transport(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -2082,15 +2334,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="breaker", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="breaker", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_breaker(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -2106,15 +2362,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="discovery", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="discovery", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_discovery(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -2130,15 +2390,19 @@ class Show(cmd.Cmd):
                 print()
                 pretty_print(es.nodes.stats(node_id=args, metric="ingest", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 pretty_print(es.nodes.stats(metric="ingest", human=True, level="node"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_stats_ingest(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -2153,14 +2417,18 @@ class Show(cmd.Cmd):
             try:
                 print()
                 print(es.cat.allocation(node_id=args, v=True))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.cat.allocation(s="node", v=True))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_nodes_allocation(self, text, line, begidx, endidx):
         return [i for i in nodelist() if i.startswith(text)]
@@ -2174,8 +2442,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,disk", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_fielddata(self, args):
         """
@@ -2184,8 +2454,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.fielddata(s="node", v=True, bytes="mb"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_attributes(self, args):
         """
@@ -2194,8 +2466,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodeattrs(s="node", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_id(self, args):
         """
@@ -2204,8 +2478,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,id", full_id=True, v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_ports(self, args):
         """
@@ -2214,8 +2490,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,port,http_address", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_version(self, args):
         """
@@ -2224,8 +2502,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,version,build,jdk", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_heap(self, args):
         """
@@ -2234,8 +2514,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,heap.current,heap.percent,heap.max", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_ram(self, args):
         """
@@ -2244,8 +2526,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,ram.current,ram.percent,ram.max", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_filedesc(self, args):
         """
@@ -2254,8 +2538,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,file_desc.current,file_desc.percent,file_desc.max", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_load(self, args):
         """
@@ -2264,8 +2550,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,cpu,load_1m,load_5m,load_15m", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_uptime(self, args):
         """
@@ -2274,8 +2562,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,uptime", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_role(self, args):
         """
@@ -2288,8 +2578,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,node.role,master", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_completion(self, args):
         """
@@ -2298,8 +2590,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,completionSize", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_fielddata_evictions(self, args):
         """
@@ -2308,8 +2602,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,fielddataMemory,fielddataEvictions", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_query_cache(self, args):
         """
@@ -2318,8 +2614,10 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,queryCacheMemory,queryCacheEvictions", v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_request_cache(self, args):
         """
@@ -2330,8 +2628,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,requestCacheMemory,requestCacheEvictions,requestCacheHitCount,requestCacheMissCount",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_flush(self, args):
         """
@@ -2342,8 +2642,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,flushTotal,flushTotalTime",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_get(self, args):
         """
@@ -2354,8 +2656,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,getCurrent,getTime,getTotal,getExistsTime,getExistsTotal,getMissingTime,getMissingTotal",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_delete(self, args):
         """
@@ -2366,8 +2670,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,indexingDeleteCurrent,indexingDeleteTime,indexingDeleteTotal",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_index(self, args):
         """
@@ -2378,8 +2684,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,indexingIndexCurrent,indexingIndexTime,indexingIndexTotal,indexingIndexFailed",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_merges(self, args):
         """
@@ -2390,8 +2698,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,mergesCurrent,mergesCurrentDocs,mergesCurrentSize,mergesTotal,mergesTotalDocs,mergesTotalSize,mergesTotalTime",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_refresh(self, args):
         """
@@ -2402,8 +2712,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,refreshTotal,refreshTime",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_script(self, args):
         """
@@ -2414,8 +2726,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,scriptCompilations,scriptCacheEvictions",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_search(self, args):
         """
@@ -2426,8 +2740,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,searchOpenContexts",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_search_fetch(self, args):
         """
@@ -2438,8 +2754,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,searchFetchCurrent,searchFetchTime,searchFetchTotal",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_search_query(self, args):
         """
@@ -2450,8 +2768,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,searchQueryCurrent,searchQueryTime,searchQueryTotal",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_search_scroll(self, args):
         """
@@ -2462,8 +2782,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,searchScrollCurrent,searchScrollTime,searchScrollTotal",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_segments(self, args):
         """
@@ -2474,8 +2796,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,segmentsCount,segmentsMemory,segmentsIndexWriterMemor,segmentsVersionMapMemory,fixedBitsetMemory",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_cat_suggest(self, args):
         """
@@ -2486,8 +2810,10 @@ class Show(cmd.Cmd):
             print(es.cat.nodes(s="name",
                                h="name,ip,id,suggestCurrent,suggestTime,suggestTotal",
                                v=True))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_bulk(self, args):
         """
@@ -2497,8 +2823,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="bulk", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_generic(self, args):
         """
@@ -2508,8 +2836,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="generic", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_index(self, args):
         """
@@ -2519,8 +2849,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="index", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_search(self, args):
         """
@@ -2530,8 +2862,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="search", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_get(self, args):
         """
@@ -2541,8 +2875,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="get", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_percolate(self, args):
         """
@@ -2552,8 +2888,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="percolate", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_snapshot(self, args):
         """
@@ -2563,8 +2901,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="snapshot", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_warmer(self, args):
         """
@@ -2574,8 +2914,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="warmer", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_refresh(self, args):
         """
@@ -2585,8 +2927,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="refresh", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_listener(self, args):
         """
@@ -2596,8 +2940,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="listener", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_management(self, args):
         """
@@ -2607,8 +2953,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="management", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_force_merge(self, args):
         """
@@ -2618,8 +2966,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="force_merge", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_flush(self, args):
         """
@@ -2629,8 +2979,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="flush", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_fetch_shard_started(self, args):
         """
@@ -2640,8 +2992,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="fetch_shard_started", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_thread_pool_fetch_shard_store(self, args):
         """
@@ -2651,8 +3005,10 @@ class Show(cmd.Cmd):
             print()
             print(es.cat.thread_pool(v=True, thread_pool_patterns="fetch_shard_store", s="node_name",
                                      h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
 
     def do_nodes_tasks(self, args):
         """
@@ -2666,14 +3022,18 @@ class Show(cmd.Cmd):
                 print()
                 print(json.dumps(es.tasks.get(task_id=args), indent=4))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.cat.tasks(v=True, detailed=True, s="node"))
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
 
 class Exec(cmd.Cmd):
@@ -2813,6 +3173,7 @@ class Exec(cmd.Cmd):
     def complete_show(self, text, line, begidx, endidx):
         return [i for i in commandlist(Show()) if i.startswith(text)]
 
+    # Elasticsearch cluster
     def do_cluster_settings_transient(self, args):
         """
         Update cluster wide specific settings.
@@ -2832,15 +3193,19 @@ class Exec(cmd.Cmd):
                     print("Setting: " + setme)
                     print()
                     es.cluster.put_settings(body=setme, flat_settings=True, timeout="300s")
-                except Exception as e:
-                    print(e)
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print("Please enter setting and its value.")
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def do_cluster_settings_persistent(self, args):
         """
@@ -2862,15 +3227,67 @@ class Exec(cmd.Cmd):
                     print()
                     print(es.cluster.put_settings(body=setme, flat_settings=True, timeout="300s"))
                     print()
-                except Exception as e:
-                    print(e)
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print("Please enter setting and its value.")
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+
+    # Elasticsearch indices
+    def do_indices_templates_delete(self, args):
+        """
+        Delete an index template by its name.
+        $ indices_templates_delete [template name] - delete [template name].
+        """
+        if args:
+            try:
+                print()
+                print(es.indices.delete_template(name=args, master_timeout="300s"))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter template name to delete.")
+            print()
+
+    def do_indices_number_of_replicas(self, args):
+        """
+        Change the the number of replicas each primary shard has.
+        $ indices_number_of_replicas .kibana 0 - disable replication of .kibana index.
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 2:
+                print()
+                print("Invalid number of arguments. Please enter index and number of replicas.")
+                print()
+            else:
+                try:
+                    replicaset = '{{ "index": {{ "number_of_replicas": {0} }} }}'.format(parms[1])
+                    print()
+                    print("Executing: " + replicaset)
+                    print()
+                    print(es.indices.put_settings(index=parms[0], body=replicaset))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter index and number of replicas.")
+            print()
 
     def do_indices_search(self, args):
         """
@@ -2887,15 +3304,14 @@ class Exec(cmd.Cmd):
             else:
                 try:
                     less(json.dumps(es.search(index=parms[0], q=parms[1], size=parms[2]), indent=2))
-                except Exception as e:
-                    print(e)
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
         else:
-            try:
-                print()
-                print("Please enter index, query and number of hits to return.")
-                print()
-            except Exception as e:
-                print(e)
+            print()
+            print("Please enter index, query and number of hits to return.")
+            print()
 
     def do_indices_forcemerge(self, args):
         """
@@ -2914,8 +3330,10 @@ class Exec(cmd.Cmd):
                 print()
                 print(es.indices.forcemerge(index=parms[0], max_num_segments=parms[1]))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_forcemerge(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -2930,8 +3348,10 @@ class Exec(cmd.Cmd):
                 print()
                 print(es.indices.delete(index=args, master_timeout="300s"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             print()
             print("Missing index or a comma-separated list of indices to delete.")
@@ -2951,8 +3371,10 @@ class Exec(cmd.Cmd):
                 print()
                 print(es.indices.close(index=args, master_timeout="300s"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             print()
             print("Missing index or a comma-separated list of indices to close.")
@@ -2971,8 +3393,10 @@ class Exec(cmd.Cmd):
                 print()
                 print(es.indices.open(index=args, master_timeout="300s"))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             print()
             print("Missing index or a comma-separated list of indices to open.")
@@ -2992,14 +3416,19 @@ class Exec(cmd.Cmd):
                 print()
                 print(es.indices.clear_cache(index=args))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.indices.clear_cache())
-            except Exception as e:
-                print(e)
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_clear_cache(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -3015,15 +3444,19 @@ class Exec(cmd.Cmd):
                 print()
                 print(es.indices.clear_cache(index=args, fielddata=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.indices.clear_cache(fielddata=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_clear_cache_fielddata(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -3039,15 +3472,19 @@ class Exec(cmd.Cmd):
                 print()
                 print(es.indices.clear_cache(index=args, query=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.indices.clear_cache(query=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_clear_cache_query(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -3063,15 +3500,19 @@ class Exec(cmd.Cmd):
                 print()
                 print(es.indices.clear_cache(index=args, recycler=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.indices.clear_cache(recycler=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_clear_cache_recycler(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -3087,17 +3528,56 @@ class Exec(cmd.Cmd):
                 print()
                 print(es.indices.clear_cache(index=args, request=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
         else:
             try:
                 print()
                 print(es.indices.clear_cache(request=True))
                 print()
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
 
     def complete_indices_clear_cache_request(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    # Elasticsearch shards
+    def do_shards_allocate_replica_dry_run(self, args):
+        """
+        Simulate allocate an unassigned replica shard to a node. Accepts the 'index' for index name and
+        'shard number', and 'dest_node' to allocate the shard to.
+        $ shards_allocate_replica_dry_run .kibana 0 node1 - simulate allocate shard 0 of index .kibana to node1.
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 3:
+                print()
+                print("Invalid number of arguments. Please enter index_name shard_number and dest_node.")
+                print()
+            else:
+                try:
+                    allocme = '{{ "commands": [ {{ "allocate_replica": {{ "index": "{0}", "shard": {1}, "node": "{2}" }} }} ] }}'.format(
+                        str(parms[0]), str(parms[1]), str(parms[2]))
+                    print()
+                    print("Executing: " + allocme)
+                    print()
+                    pretty_print(es.cluster.reroute(body=allocme, dry_run=True, explain=True, metric="master_node"),
+                                 indent=2)
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Invalid number of arguments. Please enter index_name shard_number and dest_node.")
+            print()
+
+    def complete_shards_allocate_replica_dry_run(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
 
     def do_shards_move_dry_run(self, args):
@@ -3124,15 +3604,14 @@ class Exec(cmd.Cmd):
                     pretty_print(es.cluster.reroute(body=moveme, dry_run=True, explain=True, metric="master_node"),
                                  indent=2)
                     print()
-                except Exception as e:
-                    print(e)
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
         else:
-            try:
-                print()
-                print("Please enter index_name shard_number from_node to_node.")
-                print()
-            except Exception as e:
-                print(e)
+            print()
+            print("Please enter index_name shard_number from_node to_node.")
+            print()
 
     def complete_shards_move_dry_run(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -3160,15 +3639,14 @@ class Exec(cmd.Cmd):
                     print()
                     pretty_print(es.cluster.reroute(body=moveme, explain=True, metric="master_node"), indent=2)
                     print()
-                except Exception as e:
-                    print(e)
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
         else:
-            try:
-                print()
-                print("Please enter index_name shard_number from_node to_node.")
-                print()
-            except Exception as e:
-                print(e)
+            print()
+            print("Please enter index_name shard_number from_node to_node.")
+            print()
 
     def complete_shards_move(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
@@ -3216,5 +3694,7 @@ if __name__ == "__main__":
         esconsole.cmdloop()
     except KeyboardInterrupt:
         error("Exiting...")
-    except Exception as e:
-        print(e)
+    except Exception:
+        print(format(BColors.FAIL))
+        print(traceback.print_exc(limit=1, file=sys.stdout))
+        print(format(BColors.ENDC))

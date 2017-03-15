@@ -4,13 +4,13 @@
 # title            : eShell
 # description      : Elasticsearch API avaiable via Python interactive shell.
 # author           : Patryk Krawaczyński
-# update date      : 02.02.2017
-# version          : 0.5.1.2
+# update date      : 15.02.2017
+# version          : 0.5.2.2
 # license          : Apache License (2.0)
 # usage            : ./eshell [es master ip | es master hostname]
 # python version   : 3.5.3
 # required modules : requests 2.13.0 (http://docs.python-requests.org/en/master/)
-#                  : elasticsearch 5.1.0 (http://elasticsearch-py.readthedocs.org/en/master/)
+#                  : elasticsearch 5.2.0 (http://elasticsearch-py.readthedocs.org/en/master/)
 # notes            : https://github.com/nfsec/eshell
 # -----------------
 
@@ -1478,17 +1478,6 @@ class Show(cmd.Cmd):
                 print(format(BColors.ENDC))
 
     def complete_indices_documents(self, text, line, begidx, endidx):
-        return [i for i in indexlist() if i.startswith(text)]
-
-    # TODO
-    # def do_indices_completion(self, args):
-    #    """
-    #    """
-    #    print()
-    #    pretty_print(es.nodes.stats(metric="indices", level="indices", index_metric="completion"), indent=2)
-    #    print()
-
-    def complete_indices_completion(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
 
     def do_indices_routing_table(self, args):
@@ -3174,6 +3163,14 @@ class Exec(cmd.Cmd):
         return [i for i in commandlist(Show()) if i.startswith(text)]
 
     # Elasticsearch cluster
+    def do_cluster_reroute_retry_field_shards(self, args):
+        """
+        Retries allocation of shards that are blocked due to too many subsequent allocation failures.
+        """
+        print()
+        print(es.cluster.reroute(master_timeout="300s", retry_failed=True))
+        print()
+
     def do_cluster_settings_transient(self, args):
         """
         Update cluster wide specific settings.
@@ -3242,6 +3239,45 @@ class Exec(cmd.Cmd):
                 print(format(BColors.ENDC))
 
     # Elasticsearch indices
+    def do_indices_create(self, args):
+        """
+        Create an empty index in Elasticsearch.
+        $ indices_create [index name] - create index.
+        """
+        if args:
+            try:
+                print()
+                print(es.indices.create(index=args, timeout="300s", wait_for_active_shards="all"))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter index name to create.")
+            print()
+
+    def do_indices_create_compressed(self, args):
+        """
+        Create an empty index in Elasticsearch with best compression.
+        $ indices_create_compressed [index name] - create index with best compression.
+        """
+        if args:
+            try:
+                print()
+                print(es.indices.create(index=args, timeout="300s", wait_for_active_shards="all",
+                                        body='{ "settings": { "index.codec": "best_compression" } }'))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter index name to create.")
+            print()
+
     def do_indices_templates_delete(self, args):
         """
         Delete an index template by its name.
@@ -3259,6 +3295,148 @@ class Exec(cmd.Cmd):
         else:
             print()
             print("Please enter template name to delete.")
+            print()
+
+    def do_indices_analyze_standard(self, args):
+        """
+        Perform the analysis process on a text and return the tokens breakdown of the text.
+        $ indices_analyze_standard you know for search
+        """
+        if args:
+            try:
+                print()
+                print(es.indices.analyze(analyzer="standard", text=args))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter text to analyze.")
+            print()
+
+    def do_indices_analyze_simple(self, args):
+        """
+        Perform the analysis process on a text and return the tokens breakdown of the text.
+        $ indices_analyze_simple you know for search
+        """
+        if args:
+            try:
+                print()
+                print(es.indices.analyze(analyzer="simple", text=args))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter text to analyze.")
+            print()
+
+    def do_indices_analyze_whitespace(self, args):
+        """
+        Perform the analysis process on a text and return the tokens breakdown of the text.
+        $ indices_analyze_whitespace you know for search
+        """
+        if args:
+            try:
+                print()
+                print(es.indices.analyze(analyzer="whitespace", text=args))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter text to analyze.")
+            print()
+
+    def do_indices_analyze_stop(self, args):
+        """
+        Perform the analysis process on a text and return the tokens breakdown of the text.
+        $ indices_analyze_stop you know for search
+        """
+        if args:
+            try:
+                print()
+                print(es.indices.analyze(analyzer="stop", text=args))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter text to analyze.")
+            print()
+
+    def do_indices_analyze_keyword(self, args):
+        """
+        Perform the analysis process on a text and return the tokens breakdown of the text.
+        $ indices_analyze_keyword you know for search
+        """
+        if args:
+            try:
+                print()
+                print(es.indices.analyze(analyzer="keyword", text=args))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter text to analyze.")
+            print()
+
+    def do_indices_analyze_fingerprint(self, args):
+        """
+        Perform the analysis process on a text and return the tokens breakdown of the text.
+        $ indices_analyze_fingerprint you know for search
+        """
+        if args:
+            try:
+                print()
+                print(es.indices.analyze(analyzer="fingerprint", text=args))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter text to analyze.")
+            print()
+
+    def do_indices_reindex(self, args):
+        """
+        Reindex all documents from one index to another.
+        $ indices_reindex .kibana .kibana_old - copy documents from the .kibana index into the .kibana_old.
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 2:
+                print()
+                print("Invalid number of arguments. Please source and destination index.")
+                print()
+            else:
+                try:
+                    reindex = '{{ "source": {{ "index": "{0}" }}, "dest": {{ "index": "{1}" }} }}'.format(parms[0], parms[1])
+                    print()
+                    print("Executing: " + reindex)
+                    print()
+                    print(es.reindex(body=reindex, wait_for_active_shards="all", wait_for_completion=True))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Please enter source and destination index.")
             print()
 
     def do_indices_number_of_replicas(self, args):

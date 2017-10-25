@@ -55,7 +55,7 @@ es:exec~$ indices_delete .monitoring-kibana-2-2017.01.27
 
 - New "show" commands: indices_field_mapping
 - New "exec" commands: indices_aliases_delete, indices_aliases_create
-- Update current requests (2.18.4)
+- Update to current python-requests (v2.18.4)
 
 **Changelog (v0.5.4.1):**
 

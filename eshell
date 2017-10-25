@@ -4,12 +4,12 @@
 # title            : eShell
 # description      : Elasticsearch API available via Python interactive shell.
 # author           : Patryk Krawaczyński
-# update date      : 10.06.2017
-# version          : 0.5.4.1
+# update date      : 22.10.2017
+# version          : 0.5.6.3
 # license          : Apache License (2.0)
 # usage            : ./eshell [es master ip | es master hostname]
 # python version   : 3.5.3
-# required modules : requests 2.13.0 (http://docs.python-requests.org/en/master/)
+# required modules : requests 2.18.4 (http://docs.python-requests.org/en/master/)
 #                  : elasticsearch 5.4.0 (http://elasticsearch-py.readthedocs.org/en/master/)
 # notes            : https://github.com/nfsec/eshell
 # -----------------
@@ -732,7 +732,7 @@ class Show(cmd.Cmd):
     def do_indices_mapping(self, args):
         """
         Retrieve mapping definition of index or index/type.
-        - indices_mapping [index] - show <index> mapping.
+        $ indices_mapping [index] - show <index> mapping.
         """
         if args:
             try:
@@ -749,6 +749,31 @@ class Show(cmd.Cmd):
 
     def complete_indices_mapping(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_field_mapping(self, args):
+        """
+        Retrieve mapping definition of a specific field.
+        $ indices_field_mapping [field] [index] - show <field> mapping in <index>.
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 2:
+                print()
+                print("Invalid number of arguments. Please enter field and index name.")
+                print()
+            else:
+                try:
+                    print()
+                    print(es.indices.get_field_mapping(fields=parms[0], index=parms[1]))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Invalid number of arguments. Please enter field and index name.")
+            print()
 
     def do_indices_stats_docs(self, args):
         """
@@ -1593,7 +1618,7 @@ class Show(cmd.Cmd):
         else:
             try:
                 print()
-                print(json.dumps(es.indices.shard_stores(), indent=4))
+                print(json.dumps(es.indices.shard_stores(index="_all", status="all"), indent=4))
                 print()
             except Exception:
                 print(format(BColors.FAIL))
@@ -3877,6 +3902,56 @@ class Exec(cmd.Cmd):
 
     def complete_indices_force_merge(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_aliases_delete(self, args):
+        """
+        Delete specific alias.
+        $ indices_aliases_delete [alias] [index] - delete <alias> for <index> (use _all for all indices or aliases).
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 2:
+                print()
+                print("Invalid number of arguments. Please enter alias and index name.")
+                print()
+            else:
+                try:
+                    print()
+                    print(es.indices.delete_alias(name=parms[0], index=parms[1]))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Invalid number of arguments. Please enter alias and index name.")
+            print()
+
+    def do_indices_aliases_create(self, args):
+        """
+        Create an alias for a specific index/indices.
+        $ indices_aliases_create [alias] [index] - create <alias> for <index> (use _all for all indices).
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 2:
+                print()
+                print("Invalid number of arguments. Please enter alias and index name.")
+                print()
+            else:
+                try:
+                    print()
+                    print(es.indices.put_alias(name=parms[0], index=parms[1]))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Invalid number of arguments. Please enter alias and index name.")
+            print()
 
     def do_indices_delete(self, args):
         """

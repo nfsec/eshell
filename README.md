@@ -3,7 +3,7 @@
 EShell is a Python script that allows you to interact from command-line with a running [elasticsearch](https://www.elastic.co/products/elasticsearch)
 cluster using the APIs over HTTP. HTTP Basic Authentication is supported by the environment variable **$ESAUTH** in the format: **login:password**.
 
-> v0.5.4.1 tested under Elasticsearch v5.4.1
+> v0.5.6.3 tested under Elasticsearch v5.6.3
 
 **Example:**
 
@@ -51,6 +51,12 @@ i <= 1.MB: 2092 | i <= 10.MB: 1490 | i <= 100.MB: 1195 | i <= 1.GB: 1036 | i <= 
 
 es:exec~$ indices_delete .monitoring-kibana-2-2017.01.27
 ```
+**Changelog (v0.5.6.3):**
+
+- New "show" commands: indices_field_mapping
+- New "exec" commands: indices_aliases_delete, indices_aliases_create
+- Update current requests (2.18.4)
+
 **Changelog (v0.5.4.1):**
 
 - Traceback in Exceptions

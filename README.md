@@ -60,8 +60,6 @@ es:exec~$ indices_delete .monitoring-kibana-2-2017.01.27
 - New "exec" commands: indices_create with no. of shards & replicas, indices_force_merge_only_expunge_deletes
 - Others: session logging to eshell.log file & better analyzers output
 
-better analyzers output
-
 **Changelog (v0.5.6.3):**
 
 - New "show" commands: indices_field_mapping

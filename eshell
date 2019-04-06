@@ -4,28 +4,29 @@
 # title            : eShell
 # description      : Elasticsearch API available via Python interactive shell.
 # author           : Patryk Krawaczyński
-# update date      : 22.10.2017
-# version          : 0.5.6.3
+# update date      : 05.04.2019
+# version          : 0.6.3.2
 # license          : Apache License (2.0)
 # usage            : ./eshell [es master ip | es master hostname]
-# python version   : 3.5.3
-# required modules : requests 2.18.4 (http://docs.python-requests.org/en/master/)
-#                  : elasticsearch 5.4.0 (http://elasticsearch-py.readthedocs.org/en/master/)
+# python version   : 3.5.5
+# required modules : requests 2.21.0 (http://docs.python-requests.org/en/master/)
+#                  : elasticsearch 6.3.1 (http://elasticsearch-py.readthedocs.org/en/master/)
 # notes            : https://github.com/nfsec/eshell
 # -----------------
 
 import cmd
+import json
+import logging.handlers
+import operator
 import os
 import re
 import socket
 import subprocess
 import sys
-import json
-import elasticsearch
-import requests
-import readline
-import operator
 import traceback
+import elasticsearch
+import readline
+import requests
 
 
 # Helpers
@@ -152,7 +153,8 @@ class BColors:
 
 # Elasticsearch console
 class ES(cmd.Cmd):
-    intro = "{0}\n### Welcome to Elastic Shell console!\n### For more information, type \"help\" or \"?\".\n{1}".format(
+    intro = "{0}\n### Welcome to ElasticSearch Shell console!\n### For more information, type \"help\" or \"?\".\n" \
+            "### Session will be logged to eshell.log file.\n{1}".format(
         BColors.BOLD, BColors.ENDC)
     prompt = "es:~$ "
     ruler = "-"
@@ -596,18 +598,26 @@ class Show(cmd.Cmd):
     def do_cluster_settings(self, args):
         """
         Get current cluster settings.
-        $ cluster_settings with_defaults - get cluster default settings.
-        $ cluster_settings - get cluster custom settings (default).
+        $ cluster_settings - get cluster custom settings.
         """
         try:
-            if args == "with_defaults":
-                print()
-                pretty_print(es.cluster.get_settings(flat_settings=True, include_defaults=True), indent=2)
-                print()
-            else:
-                print()
-                pretty_print(es.cluster.get_settings(flat_settings=True), indent=2)
-                print()
+            print()
+            pretty_print(es.cluster.get_settings(flat_settings=True), indent=2)
+            print()
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
+
+    def do_cluster_settings_with_defaults(self, args):
+        """
+        Get current cluster settings.
+        $ cluster_settings_with_defaults - get cluster default settings.
+        """
+        try:
+            print()
+            pretty_print(es.cluster.get_settings(flat_settings=True, include_defaults=True), indent=2)
+            print()
         except Exception:
             print(format(BColors.FAIL))
             print(traceback.print_exc(limit=1, file=sys.stdout))
@@ -678,23 +688,21 @@ class Show(cmd.Cmd):
             print(format(BColors.ENDC))
 
     # Elasticsearch indices
-    def do_indices_field_stats(self, args):
+    def do_indices_head(self, args):
         """
-        The field stats api allows one to find statistical properties of a field without executing a search,
-        but looking up measurements that are natively available in the Lucene index.
-        $ indices_field_stats [index] [field] [cluster|indices] - show <field> stats for the <index> on <cluster>
-          level.
+        Show the [number] of first documents in the index.
+        $ indices_head [index] [number] - show the <number> of first documents in the <index>.
         """
         if args:
             parms = args.split()
-            if len(parms) != 3:
+            if len(parms) != 2:
                 print()
-                print("Invalid number of arguments. Please enter index name, field name and level (indices / cluster).")
+                print("Invalid number of arguments. Please enter index name and number of documents.")
                 print()
             else:
                 try:
                     print()
-                    print(json.dumps(es.field_stats(index=parms[0], fields=parms[1], level=parms[2]), indent=2))
+                    print(json.dumps(es.search(index=parms[0], size=parms[1], q='*'), indent=4))
                     print()
                 except Exception:
                     print(format(BColors.FAIL))
@@ -702,7 +710,85 @@ class Show(cmd.Cmd):
                     print(format(BColors.ENDC))
         else:
             print()
-            print("Invalid number of arguments. Please enter index name and field name. (indices / cluster)")
+            print("Invalid number of arguments. Please enter index name and number of documents.")
+            print()
+
+    def do_indices_tail(self, args):
+        """
+        Show the [number] of recent documents in the index.
+        $ indices_head [index] [number] - show the <number> of recent documents in the <index>.
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 2:
+                print()
+                print("Invalid number of arguments. Please enter index name and number of documents.")
+                print()
+            else:
+                try:
+                    print()
+                    print(json.dumps(es.search(index=parms[0], size=parms[1], q='*', sort='@timestamp:desc'), indent=4))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Invalid number of arguments. Please enter index name and number of documents.")
+            print()
+
+    def do_indices_field_caps(self, args):
+        """
+        The field capabilities API allows to retrieve the capabilities of fields among multiple indices.
+        $ indices_field_caps [field] [index] - show <field> capabilities in <index>.
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 2:
+                print()
+                print("Invalid number of arguments. Please enter field and index name.")
+                print()
+            else:
+                try:
+                    print()
+                    pretty_print(es.field_caps(fields=parms[0], index=parms[1]))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Invalid number of arguments. Please enter field and index name.")
+            print()
+
+    def do_indices_field_termvectors(self, args):
+        """
+        Returns information and statistics on terms in the filed of a particular document.
+        $ indices_field_termvectors [index] [doc_type] [doc_id] [field] - returns all information and statistics for
+                                                                          field in document.
+        """
+        if args:
+            parms = args.split()
+            if len(parms) != 4:
+                print()
+                print("Invalid number of arguments. Please enter: index, document type, document id and field name.")
+                print()
+            else:
+                try:
+                    print()
+                    pretty_print(es.termvectors(index=parms[0], doc_type=parms[1], id=parms[2], fields=parms[3],
+                                                offsets=True, payloads=True, positions=True, term_statistics=True,
+                                                field_statistics=True))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
+            print()
+            print("Invalid number of arguments. Please enter: index, document type, document id and field name.")
             print()
 
     def do_indices_templates(self, args):
@@ -764,7 +850,7 @@ class Show(cmd.Cmd):
             else:
                 try:
                     print()
-                    print(es.indices.get_field_mapping(fields=parms[0], index=parms[1]))
+                    pretty_print(es.indices.get_field_mapping(fields=parms[0], index=parms[1]))
                     print()
                 except Exception:
                     print(format(BColors.FAIL))
@@ -1564,6 +1650,31 @@ class Show(cmd.Cmd):
     def complete_indices_health(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
 
+    def do_indices_search_shards(self, args):
+        """
+        Returns the indices and shards that a search request would be executed against.
+        $ indices_search_shards [index] - show which shards will be searched for <index>.
+        $ indices_search_shards - show which shards will be searched for all indices (default).
+        """
+        if args:
+            try:
+                print()
+                print(json.dumps(es.search_shards(index=args), indent=4))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            try:
+                print()
+                print(json.dumps(es.search_shards(), indent=4))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+
     # Elasticsearch shards
     def do_shards(self, args):
         """
@@ -1757,6 +1868,32 @@ class Show(cmd.Cmd):
         return [i for i in indexlist() if i.startswith(text)]
 
     # Elasticsearch nodes
+    def do_nodes_usage(self, args):
+        """
+        The cluster nodes usage API allows to retrieve information on the usage
+        of features for each node.
+        $ nodes_usage [node_id] - show information on the usage of <node>.
+        $ nodes_usage - show information on the usage of all nodes.
+        """
+        if args:
+            try:
+                print()
+                pretty_print(es.nodes.usage(node_id=args, human=True), indent=2)
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            try:
+                print()
+                pretty_print(es.nodes.usage(human=True), indent=2)
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+
     def do_nodes_plugins(self, args):
         """
         The plugins command provides a view per nodes of running plugins.
@@ -1874,7 +2011,9 @@ class Show(cmd.Cmd):
 
     def do_nodes_info_jvm(self, args):
         """
-        # TODO
+        Show information about node JVM: GC collectors, arguments, heap, version etc.
+        $ nodes_info_jvm [node_id] - info about one <node>.
+        $ nodes_info_jvm - info about all nodes.
         """
         if args:
             try:
@@ -1900,7 +2039,9 @@ class Show(cmd.Cmd):
 
     def do_nodes_info_thread_pool(self, args):
         """
-        # TODO
+        Show summary information about node thread pools.
+        $ nodes_info_thread_pool [node_id] - info about one <node>.
+        $ nodes_info_thread_pool - info about all nodes.
         """
         if args:
             try:
@@ -1927,7 +2068,9 @@ class Show(cmd.Cmd):
 
     def do_nodes_info_transport(self, args):
         """
-        # TODO
+        Show information about transport address and port.
+        $ nodes_info_transport [node_id] - info about one <node>.
+        $ nodes_info_transport - info about all nodes.
         """
         if args:
             try:
@@ -1953,7 +2096,9 @@ class Show(cmd.Cmd):
 
     def do_nodes_info_http(self, args):
         """
-        # TODO
+        Show information about http address and port.
+        $ nodes_info_http [node_id] - info about one <node>.
+        $ nodes_info_http - info about all nodes.
         """
         if args:
             try:
@@ -3398,21 +3543,34 @@ class Exec(cmd.Cmd):
     def do_indices_create(self, args):
         """
         Create an empty index in Elasticsearch.
-        $ indices_create [index] - create <index>.
+        $ indices_create [index] [number_of_shards] [number_of_replicas] - create <index>.
         """
         if args:
+            parms = args.split()
+            if len(parms) != 3:
+                print()
+                print("Invalid number of arguments. Please enter index, number of shards and replicas.")
+                print()
+            else:
+                try:
+                    setme = '{{ "settings": {{ "index": {{ "number_of_shards": {0}, "number_of_replicas": {1} }} }} }}' \
+                        .format(parms[1], parms[2])
+                    print()
+                    print(es.indices.create(index=parms[0], timeout="300s", wait_for_active_shards="all", body=setme))
+                    print()
+                except Exception:
+                    print(format(BColors.FAIL))
+                    print(traceback.print_exc(limit=1, file=sys.stdout))
+                    print(format(BColors.ENDC))
+        else:
             try:
                 print()
-                print(es.indices.create(index=args, timeout="300s", wait_for_active_shards="all"))
+                print("Please enter index, number of shards and replicas.")
                 print()
             except Exception:
                 print(format(BColors.FAIL))
                 print(traceback.print_exc(limit=1, file=sys.stdout))
                 print(format(BColors.ENDC))
-        else:
-            print()
-            print("Please enter index name to create.")
-            print()
 
     def do_indices_create_compressed(self, args):
         """
@@ -3461,7 +3619,8 @@ class Exec(cmd.Cmd):
         if args:
             try:
                 print()
-                print(es.indices.analyze(analyzer="standard", text=args))
+                print(json.dumps(es.indices.analyze(body='{{ "analyzer": "standard", "text": "{0}" }}'.format(args)),
+                                 indent=4))
                 print()
             except Exception:
                 print(format(BColors.FAIL))
@@ -3480,7 +3639,8 @@ class Exec(cmd.Cmd):
         if args:
             try:
                 print()
-                print(es.indices.analyze(analyzer="simple", text=args))
+                print(json.dumps(es.indices.analyze(body='{{ "analyzer": "simple", "text": "{0}" }}'.format(args)),
+                                 indent=4))
                 print()
             except Exception:
                 print(format(BColors.FAIL))
@@ -3499,7 +3659,8 @@ class Exec(cmd.Cmd):
         if args:
             try:
                 print()
-                print(es.indices.analyze(analyzer="whitespace", text=args))
+                print(json.dumps(es.indices.analyze(body='{{ "analyzer": "whitespace", "text": "{0}" }}'.format(args)),
+                                 indent=4))
                 print()
             except Exception:
                 print(format(BColors.FAIL))
@@ -3518,7 +3679,8 @@ class Exec(cmd.Cmd):
         if args:
             try:
                 print()
-                print(es.indices.analyze(analyzer="stop", text=args))
+                print(json.dumps(es.indices.analyze(body='{{ "analyzer": "stop", "text": "{0}" }}'.format(args)),
+                                 indent=4))
                 print()
             except Exception:
                 print(format(BColors.FAIL))
@@ -3537,7 +3699,8 @@ class Exec(cmd.Cmd):
         if args:
             try:
                 print()
-                print(es.indices.analyze(analyzer="keyword", text=args))
+                print(json.dumps(es.indices.analyze(body='{{ "analyzer": "keyword", "text": "{0}" }}'.format(args)),
+                                 indent=4))
                 print()
             except Exception:
                 print(format(BColors.FAIL))
@@ -3556,7 +3719,8 @@ class Exec(cmd.Cmd):
         if args:
             try:
                 print()
-                print(es.indices.analyze(analyzer="fingerprint", text=args))
+                print(json.dumps(es.indices.analyze(body='{{ "analyzer": "fingerprint", "text": "{0}" }}'.format(args)),
+                                 indent=4))
                 print()
             except Exception:
                 print(format(BColors.FAIL))
@@ -3901,6 +4065,31 @@ class Exec(cmd.Cmd):
                 print(format(BColors.ENDC))
 
     def complete_indices_force_merge(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_force_merge_only_expunge_deletes(self, args):
+        """
+        Should the merge process only expunge segments with deletes in it. In Lucene, a document
+        is not deleted from a segment, just marked as deleted. During a merge process of segments,
+        a new segment is created that does not have those deletes. This command allows to only merge
+        segments that have deletes.
+        """
+        parms = args.split()
+        if len(parms) != 1:
+            print()
+            print("Invalid number of arguments. Please provide index name.")
+            print()
+        else:
+            try:
+                print()
+                print(es.indices.forcemerge(index=parms[0], only_expunge_deletes=True))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+
+    def complete_indices_force_merge_only_expunge_deletes(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
 
     def do_indices_aliases_delete(self, args):
@@ -4314,7 +4503,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("No elasticsearch server specified. Using default localhost.{0}".format(BColors.ENDC))
         if isopen("127.0.0.1", 9200):
-            host = "127.0.0.1"
+            host = "127.0.0.1:9200"
         else:
             sys.exit(2)
     elif len(sys.argv) == 2:
@@ -4322,34 +4511,77 @@ if __name__ == "__main__":
             print(BColors.HEADER + "Connecting to elasticsearch server at address: {0:s}".format(sys.argv[1]) +
                   BColors.ENDC)
             if isopen(sys.argv[1], 9200):
-                host = sys.argv[1]
+                host = sys.argv[1] + ":9200"
             else:
                 sys.exit(2)
         elif check_ip(sys.argv[1]):
             print(BColors.HEADER + "Connecting to elasticsearch server at address: {0:s}".format(sys.argv[1]) +
                   BColors.ENDC)
             if isopen(sys.argv[1], 9200):
-                host = sys.argv[1]
+                host = sys.argv[1] + ":9200"
+            else:
+                sys.exit(2)
+        else:
+            print("Wrong DNS or IP elasticsearch node address.")
+    elif len(sys.argv) == 3:
+        if check_hostname(sys.argv[1]):
+            print(BColors.HEADER + "Connecting to elasticsearch server at address: {0:s}:{1:s}".format(sys.argv[1],
+                                                                                                       sys.argv[2]) +
+                  BColors.ENDC)
+            if isopen(sys.argv[1], int(sys.argv[2])):
+                host = sys.argv[1] + ":" + sys.argv[2]
+            else:
+                sys.exit(2)
+        elif check_ip(sys.argv[1]):
+            print(BColors.HEADER + "Connecting to elasticsearch server at adress: {0:s}:{1:s}".format(sys.argv[1],
+                                                                                                      sys.argv[2]) +
+                  BColors.ENDC)
+            if isopen(sys.argvp[1], int(sys.argv[2])):
+                host = sys.argv[1] + ":" + sys.argv[2]
             else:
                 sys.exit(2)
         else:
             print("Wrong DNS or IP elasticsearch node address.")
     else:
-        sys.exit("Usage: {0} [ES master IP/DNS address]".format(sys.argv[0]))
+        sys.exit("Usage: {0} [ES master IP/DNS address] [port]".format(sys.argv[0]))
     try:
         if "libedit" in readline.__doc__:
             readline.parse_and_bind("bind ^I rl_complete")
         else:
             readline.parse_and_bind("tab: complete")
         if "ESAUTH" in os.environ:
-            host = "http://{0}@{1}:9200".format(os.environ["ESAUTH"], host)
+            host = "http://{0}@{1}".format(os.environ["ESAUTH"], host)
         else:
-            host = "http://{0}:9200".format(host)
-        es = elasticsearch.Elasticsearch([host], sniff_on_start=False, sniff_on_connection_fail=False,
-                                         sniffer_timeout=None, timeout=300, retry_on_timeout=True, retry_on_status=True,
-                                         max_retries=3)
+            host = "http://{0}".format(host)
+        es = elasticsearch.Elasticsearch([host], timeout=300, sniff_on_start=False, sniff_on_connection_fail=False,
+                                         sniffer_timeout=None, retry_on_timeout=True, retry_on_status=True,
+                                         max_retries=99)
+        # Session logging.
+        logfile = 'eshell.log'
+
+        if os.path.isfile(logfile):
+            size = os.path.getsize(logfile)
+            if size >= 104857600:
+                logging.handlers.RotatingFileHandler(filename=logfile, backupCount=10).doRollover()
+
+        request_logger = logging.getLogger('urllib3')
+        request_logger.setLevel(logging.DEBUG)
+        request_file = logging.FileHandler(logfile)
+        request_file.setLevel(logging.DEBUG)
+        request_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        request_file.setFormatter(request_formatter)
+        request_logger.addHandler(request_file)
+        response_logger = logging.getLogger('elasticsearch.trace')
+        response_logger.setLevel(logging.DEBUG)
+        response_file = logging.FileHandler(logfile)
+        response_file.setLevel(logging.DEBUG)
+        response_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        response_file.setFormatter(response_formatter)
+        response_logger.addHandler(response_file)
+        request_logger.info("### STARTING ELASTICSEARCH SHELL SESSION...")
         esconsole = ES()
         esconsole.cmdloop()
+        request_logger.info("### CLOSING ELASTICSEARCH SHELL SESSION...")
     except KeyboardInterrupt:
         error("Exiting...")
     except Exception:

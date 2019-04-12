@@ -3004,6 +3004,19 @@ class Show(cmd.Cmd):
             print(traceback.print_exc(limit=1, file=sys.stdout))
             print(format(BColors.ENDC))
 
+    def do_nodes_thread_pool_write(self, args):
+        """
+        Show current settings and status of threads for write operations.
+        """
+        try:
+            print()
+            print(es.cat.thread_pool(v=True, thread_pool_patterns="write", s="node_name",
+                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
+
     def do_nodes_thread_pool_bulk(self, args):
         """
         Show current settings and status of threads for bulk operations.
@@ -3016,6 +3029,21 @@ class Show(cmd.Cmd):
             print(format(BColors.FAIL))
             print(traceback.print_exc(limit=1, file=sys.stdout))
             print(format(BColors.ENDC))
+
+
+    def do_nodes_thread_pool_analyze(self, args):
+        """
+        Show current settings and status of threads for analyze operations.
+        """
+        try:
+            print()
+            print(es.cat.thread_pool(v=True, thread_pool_patterns="analyze", s="node_name",
+                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,min,max,keep_alive"))
+        except Exception:
+            print(format(BColors.FAIL))
+            print(traceback.print_exc(limit=1, file=sys.stdout))
+            print(format(BColors.ENDC))
+
 
     def do_nodes_thread_pool_generic(self, args):
         """

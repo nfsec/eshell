@@ -4,8 +4,8 @@
 # title            : eShell
 # description      : Elasticsearch API available via Python interactive shell.
 # author           : Patryk Krawaczyński
-# update date      : 05.04.2019
-# version          : 0.6.3.2
+# update date      : 12.08.2019
+# version          : 0.6.8.2
 # license          : Apache License (2.0)
 # usage            : ./eshell [es master ip | es master hostname]
 # python version   : 3.5.5
@@ -27,6 +27,7 @@ import traceback
 import elasticsearch
 import readline
 import requests
+import getpass
 
 
 # Helpers
@@ -688,6 +689,32 @@ class Show(cmd.Cmd):
             print(format(BColors.ENDC))
 
     # Elasticsearch indices
+    def do_indices_recovery(self, args):
+        """
+        The indices recovery API provides insight into on-going index shard recoveries.
+        $ indices_recovery [index] - recovery status reported for specific indices.
+        $ indices_recovery - recovery status reported cluster-wide
+        """
+        if args:
+            try:
+                print()
+                pretty_print(es.indices.recovery(index=args, detailed=True))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            try:
+                print()
+                pretty_print(es.indices.recovery(detailed=True))
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+
+
     def do_indices_head(self, args):
         """
         Show the [number] of first documents in the index.
@@ -1400,6 +1427,34 @@ class Show(cmd.Cmd):
                 print(format(BColors.ENDC))
 
     def complete_indices_segments(self, text, line, begidx, endidx):
+        return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_segments_verbose(self, args):
+        """
+        Provide low level segments information that a Lucene index (shard level) is built with.
+        $ indices_segments_verbose [index] - show segments of the index.
+        $ indices_segments_verbose - show segments off all indices (default).
+        """
+        if args:
+            try:
+                print()
+                pretty_print(es.indices.segments(index=args, verbose=True), indent=2)
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+        else:
+            try:
+                print()
+                pretty_print(es.indices.segments(verbose=True), indent=2)
+                print()
+            except Exception:
+                print(format(BColors.FAIL))
+                print(traceback.print_exc(limit=1, file=sys.stdout))
+                print(format(BColors.ENDC))
+
+    def complete_indices_segments_verbose(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
 
     def do_indices_metadata(self, args):
@@ -4578,12 +4633,27 @@ if __name__ == "__main__":
         else:
             readline.parse_and_bind("tab: complete")
         if "ESAUTH" in os.environ:
-            host = "http://{0}@{1}".format(os.environ["ESAUTH"], host)
+            login = input("Please enter login name: ")
+            psswd = getpass.getpass("Password: ")
+            sslca = input("Please enter CA file path (or leave blank): ")
+            if sslca == "":
+                sslca = None
+            sslcrt = input("Please enter CRT file path (or leave blank): ")
+            if sslcrt == "":
+                sslcrt = None
+            sslkey = input("Please enter KEY file path (or leave blank): ")
+            if sslkey == "":
+                sslkey = None
+            auth = "{0}:{1}".format(login, psswd)
+            host = "https://{0}@{1}".format(auth, host)
+            es = elasticsearch.Elasticsearch([host], timeout=300, sniff_on_start=False, sniff_on_connection_fail=False,
+                                             sniffer_timeout=None, retry_on_timeout=True, retry_on_status=True,
+                                             max_retries=99, ca_certs=sslca, client_cert=sslcrt, client_key=sslkey)
         else:
             host = "http://{0}".format(host)
-        es = elasticsearch.Elasticsearch([host], timeout=300, sniff_on_start=False, sniff_on_connection_fail=False,
-                                         sniffer_timeout=None, retry_on_timeout=True, retry_on_status=True,
-                                         max_retries=99)
+            es = elasticsearch.Elasticsearch([host], timeout=300, sniff_on_start=False, sniff_on_connection_fail=False,
+                                             sniffer_timeout=None, retry_on_timeout=True, retry_on_status=True,
+                                             max_retries=99)
         # Session logging.
         logfile = 'eshell.log'
 

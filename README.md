@@ -3,7 +3,7 @@
 EShell is a Python script that allows you to interact from command-line with a running [elasticsearch](https://www.elastic.co/products/elasticsearch)
 cluster using the APIs over HTTP. HTTP Basic Authentication is supported by the environment variable **$ESAUTH** in the format: **login:password**.
 
-> v0.6.8.2 tested under Elasticsearch v6.8.2
+> v0.6.8.3 tested under Elasticsearch v6.8.3
 
 **Example:**
 
@@ -39,6 +39,25 @@ es:show~$ cluster_health
    timed_out: False
    unassigned_shards: 0
 
+es:show~$ cluster_remote
+
+ dcX:
+     connected: True
+     http_addresses: 10.10.18.22:9201, 10.10.22.29:9202, 10.10.16.40:9333
+     initial_connect_timeout: 30s
+     max_connections_per_cluster: 3
+     num_nodes_connected: 3
+     seeds: log-master1.local:9303, log-master2.local:9303, log-master3.local:9303
+     skip_unavailable: True
+ dcY:
+     connected: True
+     http_addresses: 10.10.32.16:9202, 10.10.24.16:9201, 10.10.24.10:9333
+     initial_connect_timeout: 30s
+     max_connections_per_cluster: 3
+     num_nodes_connected: 3
+     seeds: log-master1.net:9303, log-master2.net:9303, log-master2.net:9303
+     skip_unavailable: True
+
 es:show~$ nodes_cat_heap
 
 name      ip           id   heap.current heap.percent heap.max
@@ -52,6 +71,25 @@ i <= 1.MB: 2092 | i <= 10.MB: 1490 | i <= 100.MB: 1195 | i <= 1.GB: 1036 | i <= 
 
 es:exec~$ indices_delete .monitoring-kibana-2-2017.01.27
 ```
+**Changelog (v0.6.8.3):**
+
+- New "show" commands: cluster_remote, cluster_state_metadata, indices_by(!), cluster_state_routing_table,
+  nodes_stats_adaptive_selection, nodes_tasks_by_action, nodes_tasks_by_node
+- New "exec" commands: shards_allocate_replica
+- Extended commands: cluster_stats, nodes_plugins, nodes_fielddata, nodes_hot_threads
+- Renamed commands:
+  - cluster_allocation -> cluster_allocation_explain
+  - cluster_version -> cluster_state_version
+  - cluster_nodes -> cluster_state_nodes
+  - cluster_blocks -> cluster_state_blocks
+  - nodes_cat_fielddata_evictions -> nodes_cat_fielddata_and_evictions
+  - nodes_cat_query_cache_evictions -> nodes_cat_query_cache_and_evictions
+  - nodes_cat_request_cache_evictions -> nodes_cat_request_cache_and_evictions
+  - nodes_cat_index -> nodes_cat_indexing
+- Update to current python-requests (v2.22.0)
+- Logfile moved to ~/.eshell/es.log
+- Command history is saved to ~/.eshell/history
+
 **Changelog (v0.6.8.2):**
 
 - New "show" commands: indices_recovery, indices_segments_verbose
@@ -104,4 +142,3 @@ es:exec~$ indices_delete .monitoring-kibana-2-2017.01.27
 - New "show" commands: indices_indexing, indices_get, indices_search, nodes_filtercache, nodes_flush, nodes_get, nodes_merges, nodes_percolate, nodes_refresh, nodes_search, nodes_segments
 - Upgraded "show" commands: nodes_memory, nodes_jdk, nodes_filedesc, nodes_topology
 - New "exec" section with commands: indices_open, indices_close, indices_delete, indices_synced_flush, indices_optimize, nodes_shutdown
-

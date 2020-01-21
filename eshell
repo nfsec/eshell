@@ -8,7 +8,7 @@
 # version          : 0.6.8.3
 # license          : Apache License (2.0)
 # usage            : ./eshell [es master ip | es master hostname]
-# python version   : 3.5.5
+# python version   : 3.7.6
 # required modules : requests 2.22.0 (http://docs.python-requests.org/en/master/)
 #                  : elasticsearch 6.3.1 (http://elasticsearch-py.readthedocs.org/en/master/)
 # notes            : https://github.com/nfsec/eshell
@@ -23,10 +23,12 @@ import re
 import socket
 import subprocess
 import sys
+import ssl
 import traceback
 import elasticsearch
 import readline
 import requests
+import warnings
 import getpass
 import atexit
 
@@ -37,10 +39,11 @@ def error():
     Print error and traceback.
     """
     print(format(BColors.FAIL))
-    print("-"*60)
+    print("-" * 60)
     print(traceback.print_exc(file=sys.stdout))
-    print("-"*60)
+    print("-" * 60)
     print(format(BColors.ENDC))
+
 
 def check_ip(ip):
     """
@@ -455,7 +458,7 @@ class Show(cmd.Cmd):
                     pretty_print(es.cluster.allocation_explain(body=showme), indent=2)
                     print()
                 except Exception:
-                   error()
+                    error()
         else:
             try:
                 print()
@@ -728,7 +731,7 @@ class Show(cmd.Cmd):
                 print()
             except Exception:
                 error()
-                
+
     def do_indices_head(self, args):
         """
         Show the [number] of first documents in the index.
@@ -4262,7 +4265,7 @@ class Exec(cmd.Cmd):
             else:
                 try:
                     alloc = '{{ "commands": [ {{ "allocate_replica": {{ "index": "{0}", "shard": {1}, "node": "{2}" ' \
-                              '}} }} ] }}'.format(
+                            '}} }} ] }}'.format(
                         str(parms[0]), str(parms[1]), str(parms[2]))
                     print()
                     print("Executing: " + alloc)
@@ -4484,9 +4487,25 @@ if __name__ == "__main__":
                 sslkey = None
             auth = "{0}:{1}".format(login, psswd)
             host = "https://{0}@{1}".format(auth, host)
-            es = elasticsearch.Elasticsearch([host], timeout=300, sniff_on_start=False, sniff_on_connection_fail=False,
-                                             sniffer_timeout=None, retry_on_timeout=True, retry_on_status=True,
-                                             max_retries=99, ca_certs=sslca, client_cert=sslcrt, client_key=sslkey)
+            if sslca is None:
+                context = elasticsearch.connection.create_ssl_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
+                warnings.filterwarnings("ignore", message="Unverified HTTPS request")
+                warnings.filterwarnings("ignore", message="When using `ssl_context`")
+                es = elasticsearch.Elasticsearch([host], timeout=300, sniff_on_start=False,
+                                                 sniff_on_connection_fail=False,
+                                                 sniffer_timeout=None, retry_on_timeout=True, retry_on_status=True,
+                                                 max_retries=99, ca_certs=sslca, client_cert=sslcrt, client_key=sslkey,
+                                                 ssl_version=ssl.PROTOCOL_TLSv1_2, verify_certs=False,
+                                                 ssl_show_warn=False,
+                                                 ssl_context=context)
+            else:
+                es = elasticsearch.Elasticsearch([host], timeout=300, sniff_on_start=False,
+                                                 sniff_on_connection_fail=False,
+                                                 sniffer_timeout=None, retry_on_timeout=True, retry_on_status=True,
+                                                 max_retries=99, ca_certs=sslca, client_cert=sslcrt, client_key=sslkey,
+                                                 ssl_version=ssl.PROTOCOL_TLSv1_2)
         else:
             host = "http://{0}".format(host)
             es = elasticsearch.Elasticsearch([host], timeout=300, sniff_on_start=False, sniff_on_connection_fail=False,

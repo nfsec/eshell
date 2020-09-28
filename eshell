@@ -34,13 +34,16 @@ import atexit
 
 
 # Helpers
-def error():
+def error(message=None):
     """
     Print error and traceback.
     """
     print(format(BColors.FAIL))
     print("-" * 60)
-    print(traceback.print_exc(file=sys.stdout))
+    if message is None:
+        print(traceback.print_exc(file=sys.stdout))
+    else:
+        print(message)
     print("-" * 60)
     print(format(BColors.ENDC))
 
@@ -4087,6 +4090,52 @@ class Exec(cmd.Cmd):
 
     def complete_indices_delete(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
+
+    def do_indices_red_delete(self, args):
+        """
+        Delete only the red indices in Elasticsearch.
+        $ indices_red_delete [index] [--force] - delete the red <index>.
+        $ indices_red_delete [--force] - delete the all red indices.
+        """
+
+        def are_you_sure():
+            return str(input('Are you sure? (yes/no) ')) == 'yes'
+
+        def parse_local_args(local_args):
+            arguments = local_args.split(' ')
+            if len(arguments) == 2:
+                return arguments[0], True
+            elif len(arguments) == 1:
+                if str(arguments[0]).startswith('--'):
+                    return None, True
+                return arguments[0], False
+            return None, False
+
+        index, force = parse_local_args(args)
+
+        try:
+            if index is None:
+                output_data = es.cat.indices(s="index", v=True, health="red")
+                to_delete_data = es.cat.indices(s="index", v=True, health="red", format='json')
+            else:
+                output_data = es.cat.indices(s="index", v=True, index=index, health="red")
+                to_delete_data = es.cat.indices(s="index", v=True, index=index, health="red", format='json')
+
+            print()
+            print(output_data)
+
+            if not force:
+                if not are_you_sure():
+                    error('To delete indices you have to confirm this operation.')
+                    return
+                print()
+
+            for idx_data in to_delete_data:
+                idx = idx_data['index']
+                es.indices.delete(index=idx, master_timeout="300s")
+                print('Index {} has been deleted.'.format(idx))
+        except Exception:
+            error()
 
     def do_indices_close(self, args):
         """

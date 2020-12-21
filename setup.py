@@ -13,14 +13,14 @@ with open('requirements.txt') as f:
 
 setup(
     name = 'eshell',
-    version = '0.6.8.3',
-    description = 'Elasticsearch interactive shell',
+    version = '0.7.6.2',
+    description = 'Elasticsearch API available via Python interactive shell.',
     long_description = readme,
     author = 'Patryk Krawaczyński',
     author_email = 'github@nfsec.pl',
     url = 'https://github.com/nfsec/eshell',
     license = 'Apache License (2.0)',
-    keywords = 'elasticsearch shell terminal cluster managment',
+    keywords = 'elasticsearch shell administrator terminal cluster managment',
     install_requires = required,
     data_files=[('', ['LICENSE', 'README.md'])],
     zip_safe = False,
@@ -33,7 +33,7 @@ setup(
         'Natural Language :: English',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.8',
         'Topic :: System :: Shells'
     )
 )

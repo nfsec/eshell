@@ -7,7 +7,7 @@
 - New "exec" commands: indices_split, indices_shrink, indices_clone, indices_freeze, indices_unfreeze,
   indices_delete_all, shards_allocate_replica_cancel, shards_allocate_primary_cancel
 - Implemented argparse
-- Update to current python-requests (v2.24.0)
+- Removed python-requests
 - Logfile moved to ~/.e7/es.log
 - Command history is saved to ~/.e7/history
 

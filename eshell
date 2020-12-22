@@ -24,7 +24,6 @@ import argparse
 import operator
 import readline
 import warnings
-import requests
 import traceback
 import subprocess
 import elasticsearch
@@ -724,13 +723,13 @@ class Show(cmd.Cmd):
         """
         Show cluster tasks statistics.
         """
-        task_list = requests.get("{0}/_cat/pending_tasks?v=True".format(ehost))
+        task_list = str(es.cluster.pending_tasks())
         ustats = re.compile("URGENT")
-        umatch = ustats.findall(task_list.content.decode("utf-8"))
+        umatch = ustats.findall(task_list)
         hstats = re.compile("HIGH")
-        hmatch = hstats.findall(task_list.content.decode("utf-8"))
+        hmatch = hstats.findall(task_list)
         nstats = re.compile("NORMAL")
-        nmatch = nstats.findall(task_list.content.decode("utf-8"))
+        nmatch = nstats.findall(task_list)
         print("Tasks statistics: URGENT: {0} HIGH: {1} NORMAL: {2}".format(str(len(umatch)), str(len(hmatch)), str(
             len(nmatch))))
 
@@ -840,9 +839,9 @@ class Show(cmd.Cmd):
         Show cluster state size in MB
         """
         try:
-            state_size = requests.get("{0}/_cluster/state/_all".format(ehost), stream=True)
+            state_size = str(es.cluster.state(metric="_all"))
             print()
-            print("Approximately: " + convert_size(len(state_size.content)))
+            print("Approximately: " + convert_size(len(state_size)))
             print()
         except Exception:
             error()
@@ -4490,34 +4489,31 @@ if __name__ == "__main__":
             ssl_key = input("Enter KEY file path (or leave blank): ")
             if ssl_key == "":
                 ssl_key = None
-            oauth = "{0}:{1}".format(login, password)
-            ehost = "https://{0}@{1}:{2}".format(oauth, args.host, args.port)
             if ssl_ca is None:
                 context = elasticsearch.connection.create_ssl_context()
                 context.check_hostname = False
                 context.verify_mode = ssl.CERT_NONE
                 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
                 warnings.filterwarnings("ignore", message="When using `ssl_context`")
-                es = elasticsearch.Elasticsearch([ehost], timeout=300, sniff_on_start=True,
-                                                 sniff_on_connection_fail=True,
+                es = elasticsearch.Elasticsearch([args.host], port=args.port, http_auth=(login, password), timeout=300,
+                                                 opaque_id="eshell", sniff_on_start=True, sniff_on_connection_fail=True,
                                                  sniffer_timeout=60, retry_on_timeout=True, retry_on_status=True,
                                                  max_retries=99, ca_certs=ssl_ca, client_cert=ssl_crt,
-                                                 client_key=ssl_key,
+                                                 scheme="https", client_key=ssl_key,
                                                  ssl_version=ssl.PROTOCOL_TLSv1_2, verify_certs=False,
                                                  ssl_show_warn=False,
                                                  ssl_context=context)
             else:
-                es = elasticsearch.Elasticsearch([ehost], timeout=300, sniff_on_start=True,
-                                                 sniff_on_connection_fail=True,
+                es = elasticsearch.Elasticsearch([args.host], port=args.port, http_auth=(login, password), timeout=300,
+                                                 opaque_id="eshell", sniff_on_start=True, sniff_on_connection_fail=True,
                                                  sniffer_timeout=60, retry_on_timeout=True, retry_on_status=True,
                                                  max_retries=99, ca_certs=ssl_ca, client_cert=ssl_crt,
-                                                 client_key=ssl_key,
+                                                 scheme="https", client_key=ssl_key,
                                                  ssl_version=ssl.PROTOCOL_TLSv1_2)
         else:
-            ehost = "http://{0}:{1}".format(args.host, args.port)
-            es = elasticsearch.Elasticsearch([ehost], timeout=300, sniff_on_start=True, sniff_on_connection_fail=True,
-                                             sniffer_timeout=60, retry_on_timeout=True, retry_on_status=True,
-                                             max_retries=99)
+            es = elasticsearch.Elasticsearch([args.host], port=args.port, timeout=300, opaque_id="eshell",
+                                             sniff_on_start=True, sniff_on_connection_fail=True, sniffer_timeout=60,
+                                             retry_on_timeout=True, retry_on_status=True, max_retries=99)
         # run command line
         esconsole = ES()
         esconsole.cmdloop()

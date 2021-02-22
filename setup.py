@@ -13,7 +13,7 @@ with open('requirements.txt') as f:
 
 setup(
     name = 'eshell',
-    version = '0.7.6.2',
+    version = '0.7.10.2',
     description = 'Elasticsearch API available via Python interactive shell.',
     long_description = readme,
     author = 'Patryk Krawaczyński',

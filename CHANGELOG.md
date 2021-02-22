@@ -1,5 +1,13 @@
 ## Version changelog ##
 
+**Changelog (v0.7.10.2):**
+
+- Disabled include_unloaded_segments in show/indices for 6.X compatibility.
+- New "show" commands: nodes_allocation_primary, nodes_allocation_replica, nodes_thread_pool_system_read
+- New "exec" commands: indices_close_by_regex, indices_open_by_regex, nodes_reload_secure_settings
+- Renamed: indices_delete_all to indices_delete_by_health
+- Fixed: show/nodes_fileddata, show/nodes_cat_role.
+
 **Changelog (v0.7.6.2):**
 
 - New global commands: history_file, history_search

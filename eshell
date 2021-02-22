@@ -4,7 +4,7 @@
 __title__ = "eshell"
 __description__ = "Elasticsearch API available via Python interactive shell."
 __url__ = "https://github.com/nfsec/eshell"
-__version__ = "0.7.6.2"
+__version__ = "0.7.10.2"
 __license__ = "Apache License (2.0)"
 __author__ = "Patryk Krawaczyński <agresor@nfsec.pl>"
 __help__ = "Help menu descriptions are from the official Elasticsearch documentation: " \
@@ -1284,13 +1284,13 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                print(es.cat.indices(s="index", v=True, include_unloaded_segments=True, index=arg))
+                print(es.cat.indices(s="index", v=True, index=arg))
             except Exception:
                 error()
         else:
             try:
                 print()
-                less(es.cat.indices(s="index", v=True, include_unloaded_segments=True))
+                less(es.cat.indices(s="index", v=True))
                 print()
             except Exception:
                 error()
@@ -1384,7 +1384,7 @@ class Show(cmd.Cmd):
                 error()
         else:
             print()
-            print("Please enter value to sort on [asc/desc] and value to display. Use help for possible values.")
+            print("Please enter: 1) value to sort on  2) sort order [asc/desc] 3) value to display 4) index name.")
             print()
 
     def do_indices_green(self, arg):
@@ -1803,6 +1803,44 @@ class Show(cmd.Cmd):
 
     do_nodes_disk = do_nodes_allocation
 
+    def do_nodes_allocation_primary(self, arg):
+        """
+        Show snapshot of how primary shards have located around the cluster.
+        """
+        try:
+            data = es.cat.shards(h="prirep,node")
+            uniq = []
+            for line in data.split('\n'):
+                if line.startswith('p '):
+                    splitted = line.split()
+                    uniq.append(splitted[1])
+            print()
+            pretty_print(dict((x,uniq.count(x)) for x in set(uniq)), indent=2)
+            print()
+        except Exception:
+            error()
+
+    do_nodes_disk_primaries = do_nodes_allocation_primary
+
+    def do_nodes_allocation_replica(self, arg):
+        """
+        Show snapshot of how replica shards have located around the cluster.
+        """
+        try:
+            data = es.cat.shards(h="prirep,node")
+            uniq = []
+            for line in data.split('\n'):
+                if line.startswith('r '):
+                    splitted = line.split()
+                    uniq.append(splitted[1])
+            print()
+            pretty_print(dict((x,uniq.count(x)) for x in set(uniq)), indent=2)
+            print()
+        except Exception:
+            error()
+
+    do_nodes_disk_replica = do_nodes_allocation_replica
+
     def do_nodes_fielddata(self, arg):
         """
         Shows information about currently loaded fielddata on a per-node basis.
@@ -1912,7 +1950,7 @@ class Show(cmd.Cmd):
             if len(argv) == 3:
                 try:
                     print()
-                    print(es.nodes.hot_threads(threads=argv[0], type=argv[1], node_id=argv[2]))
+                    print(es.nodes.hot_threads(threads=argv[0], doc_type=argv[1], node_id=argv[2]))
                     print()
                 except Exception:
                     error()
@@ -1923,7 +1961,7 @@ class Show(cmd.Cmd):
         else:
             try:
                 print()
-                print(es.nodes.hot_threads(threads="5", type="cpu", node_id="_all"))
+                print(es.nodes.hot_threads(threads="5", doc_type="cpu", node_id="_all"))
             except Exception:
                 error()
 
@@ -2712,6 +2750,15 @@ class Show(cmd.Cmd):
         - m - master eligible node.
         - d - data node.
         - i - ingest node.
+        - c - cold node.
+        - d - data node.
+        - h - hot node.
+        - l - machine learning node.
+        - r - remote cluster client node.
+        - s - content node.
+        - t - tansform node.
+        - v - voting-only node.
+        - w - warm node.
         - - - coordinating node only.
         """
         try:
@@ -2898,6 +2945,30 @@ class Show(cmd.Cmd):
         try:
             print()
             print(es.cat.nodes(s="name", h="name,ip,id,suggestCurrent,suggestTime,suggestTotal", v=True))
+        except Exception:
+            error()
+
+    def do_nodes_thread_pool_system_read(self, arg):
+        """
+        Show thread pool used to manage resources for read operations targeting system indices (.xxx)
+        """
+        try:
+            print()
+            print(es.cat.thread_pool(v=True, thread_pool_patterns="system_read", s="node_name",
+                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                                       "min,max,keep_alive"))
+        except Exception:
+            error()
+
+    def do_nodes_thread_pool_system_write(self, arg):
+        """
+        Show thread pool used to manage resources for write operations targeting system indices (.xxx)
+        """
+        try:
+            print()
+            print(es.cat.thread_pool(v=True, thread_pool_patterns="system_write", s="node_name",
+                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                                       "min,max,keep_alive"))
         except Exception:
             error()
 
@@ -3104,7 +3175,6 @@ class Show(cmd.Cmd):
                                        "min,max,keep_alive"))
         except Exception:
             error()
-
 
 # elasticsearch exec-console
 class Exec(cmd.Cmd):
@@ -4170,10 +4240,10 @@ class Exec(cmd.Cmd):
     def complete_indices_clear_cache_request(self, text, line, begidx, endidx):
         return [i for i in indexlist() if i.startswith(text)]
 
-    def do_indices_delete_all(self, arg):
+    def do_indices_delete_by_health(self, arg):
         """
         Delete all indices in health status (red/yellow/green) from cluster.
-        $ delete_all_indices [health] - delete all indices in [health] status from cluster.
+        $ indices_delete_by_health [health] - delete all indices in [health] status from cluster.
         """
         if arg:
             try:
@@ -4203,6 +4273,111 @@ class Exec(cmd.Cmd):
         else:
             print()
             print("Please enter a health status ( green / yellow / red ).")
+            print()
+
+    def do_indices_delete_by_regex(self, arg):
+        """
+        Delete all indices maching regex from cluster.
+        $ indices_delete_by_regex [prefix*] - delete all indices maching regex from cluster.
+        """
+        if arg:
+            try:
+                indices_list = es.cat.indices(s="index", v=True, index=arg)
+                indices_to_delete = es.cat.indices(s="index", index=arg, h="index", format="json")
+                print()
+                print(indices_list)
+                print()
+                confirm = input("Are you sure ? (yes/no): ").lower()
+                print()
+                if confirm == "yes":
+                    total_size = len(indices_to_delete)
+                    counter = 1
+                    for indices in indices_to_delete:
+                        idx = indices["index"]
+                        print("Deleting: {0} [{1}/{2}]".format(idx, counter, total_size))
+                        counter += 1
+                        es.indices.delete(index=idx, master_timeout="300s", timeout="300s", ignore=[404])
+                        print("Index {0} has been deleted.".format(idx))
+                    print()
+                else:
+                    print()
+                    print("Wise choice.")
+                    print()
+            except Exception:
+                error()
+        else:
+            print()
+            print("Please enter a index regex ( eg. logs* ).")
+            print()
+
+    def do_indices_close_by_regex(self, arg):
+        """
+        Close all indices maching regex from cluster.
+        $ indices_close_by_regex [prefix*] - close all indices maching regex from cluster.
+        """
+        if arg:
+            try:
+                indices_list = es.cat.indices(s="index", v=True, index=arg)
+                indices_to_close = es.cat.indices(s="index", index=arg, h="index", format="json")
+                print()
+                print(indices_list)
+                print()
+                confirm = input("Are you sure ? (yes/no): ").lower()
+                print()
+                if confirm == "yes":
+                    total_size = len(indices_to_close)
+                    counter = 1
+                    for indices in indices_to_close:
+                        idx = indices["index"]
+                        print("Closing: {0} [{1}/{2}]".format(idx, counter, total_size))
+                        counter += 1
+                        es.indices.close(index=idx, master_timeout="300s", timeout="300s", ignore=[404])
+                        print("Index {0} has been closed.".format(idx))
+                    print()
+                else:
+                    print()
+                    print("Wise choice.")
+                    print()
+            except Exception:
+                error()
+        else:
+            print()
+            print("Please enter a index regex ( eg. logs* ).")
+            print()
+
+    def do_indices_open_by_regex(self, arg):
+        """
+        Open all indices maching regex from cluster.
+        $ indices_open_by_regex [prefix*] - open all indices maching regex from cluster.
+        """
+        if arg:
+            try:
+                indices_list = es.cat.indices(s="index", v=True, index=arg)
+                indices_to_open = es.cat.indices(s="index", index=arg, h="index", format="json")
+                print()
+                print(indices_list)
+                print()
+                confirm = input("Are you sure ? (yes/no): ").lower()
+                print()
+                if confirm == "yes":
+                    total_size = len(indices_to_open)
+                    counter = 1
+                    for indices in indices_to_open:
+                        idx = indices["index"]
+                        print("Opening: {0} [{1}/{2}]".format(idx, counter, total_size))
+                        counter += 1
+                        es.indices.open(index=idx, master_timeout="300s", timeout="300s", ignore=[404])
+                        print("Index {0} has been opened.".format(idx))
+                    print()
+                else:
+                    print()
+                    print("Wise choice.")
+                    print()
+            except Exception:
+                error()
+        else:
+            print()
+            print("Please enter a index regex ( eg. logs* ).")
             print()
 
     # elasticsearch shards-exec-console
@@ -4380,6 +4555,23 @@ class Exec(cmd.Cmd):
         return [i for i in indexlist() if i.startswith(text)]
 
     # elasticsearch nodes-exec-console
+    def do_nodes_reload_secure_settings(self, arg):
+        """
+        Reloads secure settings.
+        $ nodes_reload_secure_settings
+        """
+        try:
+            print()
+            password = getpass.getpass("Please enter keystore password: ")
+            if not password:
+                print()
+                print(es.nodes.reload_secure_settings())
+            else:
+                print()
+                print(es.nodes.reload_secure_settings(body='{{"secure_settings_password": "{0}"}}'.format(password)))
+        except Exception:
+            error()
+
     def do_nodes_tasks_cancel(self, arg):
         """
         Cancel the task with specified task id (node_id:task_number).

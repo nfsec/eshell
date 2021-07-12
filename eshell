@@ -178,16 +178,16 @@ def less(text):
         print("Exiting...")
 
 
-def convert_size(bytes):
+def convert_size(bytes_unit):
     """
     Convert bytes to human-readable unit.
     """
-    if bytes == 0:
+    if bytes_unit == 0:
         return "0B"
     size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-    i = int(math.floor(math.log(bytes, 1024)))
+    i = int(math.floor(math.log(bytes_unit, 1024)))
     p = math.pow(1024, i)
-    s = round(bytes / p, 2)
+    s = round(bytes_unit / p, 2)
     return "{0} {1}".format(s, size_name[i])
 
 
@@ -1815,7 +1815,7 @@ class Show(cmd.Cmd):
                     splitted = line.split()
                     uniq.append(splitted[1])
             print()
-            pretty_print(dict((x,uniq.count(x)) for x in set(uniq)), indent=2)
+            pretty_print(dict((x, uniq.count(x)) for x in set(uniq)), indent=2)
             print()
         except Exception:
             error()
@@ -1834,7 +1834,7 @@ class Show(cmd.Cmd):
                     splitted = line.split()
                     uniq.append(splitted[1])
             print()
-            pretty_print(dict((x,uniq.count(x)) for x in set(uniq)), indent=2)
+            pretty_print(dict((x, uniq.count(x)) for x in set(uniq)), indent=2)
             print()
         except Exception:
             error()
@@ -3175,6 +3175,7 @@ class Show(cmd.Cmd):
                                        "min,max,keep_alive"))
         except Exception:
             error()
+
 
 # elasticsearch exec-console
 class Exec(cmd.Cmd):
@@ -4609,7 +4610,8 @@ class Exec(cmd.Cmd):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="eshell", description="example: eshell elasticsearch.lan", epilog=":: ES7shell",
+    parser = argparse.ArgumentParser(prog="eshell", description="example: eshell elasticsearch.lan",
+                                     epilog=":: ES7shell",
                                      add_help=True)
     parser.add_argument("host", nargs="?", help="elasticsearch IP or hostname (default: 127.0.0.1)",
                         default="127.0.0.1", type=str)
@@ -4687,25 +4689,25 @@ if __name__ == "__main__":
                 context.verify_mode = ssl.CERT_NONE
                 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
                 warnings.filterwarnings("ignore", message="When using `ssl_context`")
-                es = elasticsearch.Elasticsearch([args.host], port=args.port, http_auth=(login, password), timeout=300,
-                                                 opaque_id="eshell", sniff_on_start=True, sniff_on_connection_fail=True,
-                                                 sniffer_timeout=60, retry_on_timeout=True, retry_on_status=True,
-                                                 max_retries=99, ca_certs=ssl_ca, client_cert=ssl_crt,
-                                                 scheme="https", client_key=ssl_key,
-                                                 ssl_version=ssl.PROTOCOL_TLSv1_2, verify_certs=False,
-                                                 ssl_show_warn=False,
-                                                 ssl_context=context)
+                es = elasticsearch.Elasticsearch(host=args.host, port=args.port, http_auth=(login, password),
+                                                 timeout=300, opaque_id="eshell", sniff_on_start=True,
+                                                 sniff_on_connection_fail=True, sniffer_timeout=60,
+                                                 retry_on_timeout=True, retry_on_status=True, max_retries=99,
+                                                 dead_timeout=300, ca_certs=ssl_ca, client_cert=ssl_crt, scheme="https",
+                                                 client_key=ssl_key, ssl_version=ssl.PROTOCOL_TLSv1_2,
+                                                 verify_certs=False, ssl_show_warn=False, ssl_context=context)
             else:
-                es = elasticsearch.Elasticsearch([args.host], port=args.port, http_auth=(login, password), timeout=300,
-                                                 opaque_id="eshell", sniff_on_start=True, sniff_on_connection_fail=True,
-                                                 sniffer_timeout=60, retry_on_timeout=True, retry_on_status=True,
-                                                 max_retries=99, ca_certs=ssl_ca, client_cert=ssl_crt,
-                                                 scheme="https", client_key=ssl_key,
-                                                 ssl_version=ssl.PROTOCOL_TLSv1_2)
+                es = elasticsearch.Elasticsearch(host=args.host, port=args.port, http_auth=(login, password),
+                                                 timeout=300, opaque_id="eshell", sniff_on_start=True,
+                                                 sniff_on_connection_fail=True, sniffer_timeout=60,
+                                                 retry_on_timeout=True, retry_on_status=True, max_retries=99,
+                                                 dead_timeout=300, ca_certs=ssl_ca, client_cert=ssl_crt, scheme="https",
+                                                 client_key=ssl_key, ssl_version=ssl.PROTOCOL_TLSv1_2)
         else:
-            es = elasticsearch.Elasticsearch([args.host], port=args.port, timeout=300, opaque_id="eshell",
+            es = elasticsearch.Elasticsearch(host=args.host, port=args.port, timeout=300, opaque_id="eshell",
                                              sniff_on_start=True, sniff_on_connection_fail=True, sniffer_timeout=60,
-                                             retry_on_timeout=True, retry_on_status=True, max_retries=99)
+                                             retry_on_timeout=True, retry_on_status=True, max_retries=99,
+                                             dead_timeout=300)
         # run command line
         esconsole = ES()
         esconsole.cmdloop()

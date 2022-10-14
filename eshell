@@ -7,27 +7,30 @@ __url__ = "https://github.com/nfsec/eshell"
 __version__ = "0.7.10.2"
 __license__ = "Apache License (2.0)"
 __author__ = "Patryk Krawaczyński <agresor@nfsec.pl>"
-__help__ = "Help menu descriptions are from the official Elasticsearch documentation: " \
-           "https://www.elastic.co/guide/index.html"
+__help__ = (
+    "Help menu descriptions are from the official Elasticsearch documentation: "
+    "https://www.elastic.co/guide/index.html"
+)
 
+import argparse
+import atexit
+import cmd
+import getpass
+import json
+import logging.handlers
+import math
+import operator
 import os
 import re
-import sys
-import ssl
-import cmd
-import math
-import json
-import socket
-import atexit
-import getpass
-import argparse
-import operator
 import readline
-import warnings
-import traceback
+import socket
+import ssl
 import subprocess
+import sys
+import traceback
+import warnings
+
 import elasticsearch
-import logging.handlers
 
 
 # little helpers
@@ -35,6 +38,7 @@ class BColors:
     """
     Colors for terminal
     """
+
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
     OKGREEN = "\033[92m"
@@ -69,7 +73,12 @@ def isopen(ip, port):
         print("Connected to: {0} on port: {1}".format(str(ip), str(port)))
         return True
     except socket.error as s_err:
-        print("Problem with connection to: {0} on port: {1}. Error code:".format(str(ip), str(port)), s_err)
+        print(
+            "Problem with connection to: {0} on port: {1}. Error code:".format(
+                str(ip), str(port)
+            ),
+            s_err,
+        )
         return False
 
 
@@ -159,7 +168,7 @@ def parse_list(list_string):
     """
     Convert list in format: ['key=value'] to directory: {'key': 'value'}
     """
-    return dict(map(lambda s: s.split('='), list_string))
+    return dict(map(lambda s: s.split("="), list_string))
 
 
 def less(text):
@@ -167,7 +176,11 @@ def less(text):
     Filter long text with the <less> tool
     """
     try:
-        pager = subprocess.Popen(["less", "-F", "-R", "-S", "-X", "-K", "-N"], stdin=subprocess.PIPE, stdout=sys.stdout)
+        pager = subprocess.Popen(
+            ["less", "-F", "-R", "-S", "-X", "-K", "-N"],
+            stdin=subprocess.PIPE,
+            stdout=sys.stdout,
+        )
         for line in text:
             pager.stdin.write(line.encode("utf-8"))
         pager.stdin.close()
@@ -210,9 +223,13 @@ def nodelist():
 
 # elasticsearch main-console
 class ES(cmd.Cmd):
-    intro = "{0}\n### Welcome to elasticsearch shell console!\n### For more information, type \"help\" or \"?\".\n" \
-            "### Session will be logged to ~/.e7/es.log.\n" \
-            "### Command history will be saved to ~/.e7/history.\n{1}".format(BColors.BOLD, BColors.ENDC)
+    intro = (
+        '{0}\n### Welcome to elasticsearch shell console!\n### For more information, type "help" or "?".\n'
+        "### Session will be logged to ~/.e7/es.log.\n"
+        "### Command history will be saved to ~/.e7/history.\n{1}".format(
+            BColors.BOLD, BColors.ENDC
+        )
+    )
     prompt = "e7:~$ "
     ruler = "-"
     doc_header = "Available commands (type: help <command>):"
@@ -299,7 +316,7 @@ class ES(cmd.Cmd):
         """
         if arg:
             history_length = readline.get_current_history_length()
-            for i in (range((history_length - int(arg)), history_length)):
+            for i in range((history_length - int(arg)), history_length):
                 print(readline.get_history_item(i + 1))
         else:
             for i in range(readline.get_current_history_length()):
@@ -310,7 +327,7 @@ class ES(cmd.Cmd):
         Search for [term] in history file.
         $ history_search [term]
         """
-        for i in (range(readline.get_current_history_length())):
+        for i in range(readline.get_current_history_length()):
             if re.search(arg, str(readline.get_history_item(i + 1))):
                 print(readline.get_history_item(i + 1))
 
@@ -335,7 +352,7 @@ class ES(cmd.Cmd):
         Print the input, replacing '$out' with the output of the last shell command.
         $ echo $out - print last output for shell command.
         """
-        print(line.replace('$out', self.last_output))
+        print(line.replace("$out", self.last_output))
 
     def do_quit(self, arg):
         """
@@ -372,8 +389,9 @@ class ES(cmd.Cmd):
 
 # elasticsearch show-console
 class Show(cmd.Cmd):
-    intro = "\n{0}### Entering to cluster information menu!\n### For more information, type \"help\" or \"?\".\n{1}". \
-        format(BColors.BOLD, BColors.ENDC)
+    intro = '\n{0}### Entering to cluster information menu!\n### For more information, type "help" or "?".\n{1}'.format(
+        BColors.BOLD, BColors.ENDC
+    )
     prompt = "es7:show~$ "
     ruler = "-"
     doc_header = "Available commands (type: help <command>):"
@@ -461,7 +479,7 @@ class Show(cmd.Cmd):
         """
         if arg:
             history_length = readline.get_current_history_length()
-            for i in (range((history_length - int(arg)), history_length)):
+            for i in range((history_length - int(arg)), history_length):
                 print(readline.get_history_item(i + 1))
         else:
             for i in range(readline.get_current_history_length()):
@@ -472,7 +490,7 @@ class Show(cmd.Cmd):
         Search for [term] in history file.
         $ history_search [term]
         """
-        for i in (range(readline.get_current_history_length())):
+        for i in range(readline.get_current_history_length()):
             if re.search(arg, str(readline.get_history_item(i + 1))):
                 print(readline.get_history_item(i + 1))
 
@@ -586,7 +604,9 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            pretty_print(es.cluster.allocation_explain(params=parse_string(arg)), indent=2)
+            pretty_print(
+                es.cluster.allocation_explain(params=parse_string(arg)), indent=2
+            )
             print()
         except Exception:
             error()
@@ -606,14 +626,21 @@ class Show(cmd.Cmd):
         argv = arg.split()
         if len(argv) < 3:
             print()
-            print("Please provide [index] name, [shard] and [true] or [false] if primary.")
+            print(
+                "Please provide [index] name, [shard] and [true] or [false] if primary."
+            )
             print()
         else:
             try:
-                payload = '{{ "index": "{0}", "shard": {1}, "primary": {2} }}'.format(str(argv[0]), str(argv[1]),
-                                                                                      str(argv[2]))
+                payload = '{{ "index": "{0}", "shard": {1}, "primary": {2} }}'.format(
+                    str(argv[0]), str(argv[1]), str(argv[2])
+                )
                 print()
-                pretty_print(es.cluster.allocation_explain(body=payload, params=(parse_list(argv[3:]))))
+                pretty_print(
+                    es.cluster.allocation_explain(
+                        body=payload, params=(parse_list(argv[3:]))
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -636,13 +663,19 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                print(es.cat.snapshots(repository=arg, ignore_unavailable=True, v=True, s="id"))
+                print(
+                    es.cat.snapshots(
+                        repository=arg, ignore_unavailable=True, v=True, s="id"
+                    )
+                )
             except Exception:
                 error()
         else:
             print()
             print("Please provide name of repository to show its snapshots. ")
-            print("To find a list of available repositories to query, the command 'cluster_repositories' can be used.")
+            print(
+                "To find a list of available repositories to query, the command 'cluster_repositories' can be used."
+            )
             print()
 
     def do_cluster_ping(self, arg):
@@ -730,8 +763,11 @@ class Show(cmd.Cmd):
         hmatch = hstats.findall(task_list)
         nstats = re.compile("NORMAL")
         nmatch = nstats.findall(task_list)
-        print("Tasks statistics: URGENT: {0} HIGH: {1} NORMAL: {2}".format(str(len(umatch)), str(len(hmatch)), str(
-            len(nmatch))))
+        print(
+            "Tasks statistics: URGENT: {0} HIGH: {1} NORMAL: {2}".format(
+                str(len(umatch)), str(len(hmatch)), str(len(nmatch))
+            )
+        )
 
     def do_cluster_settings(self, arg):
         """
@@ -752,7 +788,10 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            pretty_print(es.cluster.get_settings(flat_settings=True, include_defaults=True), indent=2)
+            pretty_print(
+                es.cluster.get_settings(flat_settings=True, include_defaults=True),
+                indent=2,
+            )
             print()
         except Exception:
             error(arg)
@@ -822,14 +861,21 @@ class Show(cmd.Cmd):
             else:
                 try:
                     print()
-                    pretty_print(es.cluster.state(metric=argv[0], index=argv[1], flat_settings=True), indent=2)
+                    pretty_print(
+                        es.cluster.state(
+                            metric=argv[0], index=argv[1], flat_settings=True
+                        ),
+                        indent=2,
+                    )
                     print()
                 except Exception:
                     error()
         else:
             try:
                 print()
-                pretty_print(es.cluster.state(metric="_all", flat_settings=True), indent=2)
+                pretty_print(
+                    es.cluster.state(metric="_all", flat_settings=True), indent=2
+                )
                 print()
             except Exception:
                 error()
@@ -885,7 +931,9 @@ class Show(cmd.Cmd):
         if len(argv) >= 1:
             try:
                 print()
-                pretty_print(es.indices.recovery(index=argv[0], params=(parse_list(argv[1:]))))
+                pretty_print(
+                    es.indices.recovery(index=argv[0], params=(parse_list(argv[1:])))
+                )
                 print()
             except Exception:
                 error()
@@ -906,7 +954,9 @@ class Show(cmd.Cmd):
         if len(argv) == 2:
             try:
                 print()
-                print(json.dumps(es.search(index=argv[0], size=argv[1], q='*'), indent=4))
+                print(
+                    json.dumps(es.search(index=argv[0], size=argv[1], q="*"), indent=4)
+                )
                 print()
             except Exception:
                 error()
@@ -927,13 +977,22 @@ class Show(cmd.Cmd):
         if len(argv) == 3:
             try:
                 print()
-                print(json.dumps(es.search(index=argv[0], size=argv[1], q='*', sort=argv[2] + ':desc'), indent=4))
+                print(
+                    json.dumps(
+                        es.search(
+                            index=argv[0], size=argv[1], q="*", sort=argv[2] + ":desc"
+                        ),
+                        indent=4,
+                    )
+                )
                 print()
             except Exception:
                 error()
         else:
             print()
-            print("Please enter [index] name, [number] of documents and [field] for sorting.")
+            print(
+                "Please enter [index] name, [number] of documents and [field] for sorting."
+            )
             print()
 
     def complete_indices_tail(self, text, line, begidx, endidx):
@@ -949,7 +1008,13 @@ class Show(cmd.Cmd):
             try:
                 print()
                 pretty_print(
-                    es.field_caps(index=argv[0], fields=argv[1], expand_wildcards="all", include_unmapped=True))
+                    es.field_caps(
+                        index=argv[0],
+                        fields=argv[1],
+                        expand_wildcards="all",
+                        include_unmapped=True,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -971,15 +1036,27 @@ class Show(cmd.Cmd):
         if len(argv) == 4:
             try:
                 print()
-                pretty_print(es.termvectors(index=argv[0], doc_type=argv[1], id=argv[2], fields=argv[3],
-                                            offsets=True, payloads=True, positions=True, term_statistics=True,
-                                            field_statistics=True))
+                pretty_print(
+                    es.termvectors(
+                        index=argv[0],
+                        doc_type=argv[1],
+                        id=argv[2],
+                        fields=argv[3],
+                        offsets=True,
+                        payloads=True,
+                        positions=True,
+                        term_statistics=True,
+                        field_statistics=True,
+                    )
+                )
                 print()
             except Exception:
                 error()
         else:
             print()
-            print("Please enter: [index], [document type], [document id] and [field] name.")
+            print(
+                "Please enter: [index], [document type], [document id] and [field] name."
+            )
             print()
 
     def complete_indices_field_termvectors(self, text, line, begidx, endidx):
@@ -1035,8 +1112,14 @@ class Show(cmd.Cmd):
         if len(argv) == 2:
             try:
                 print()
-                print(json.dumps(es.indices.get_field_mapping(index=argv[0], fields=argv[1], expand_wildcards="all"),
-                                 indent=4))
+                print(
+                    json.dumps(
+                        es.indices.get_field_mapping(
+                            index=argv[0], fields=argv[1], expand_wildcards="all"
+                        ),
+                        indent=4,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -1076,8 +1159,16 @@ class Show(cmd.Cmd):
         if len(argv) == 2:
             try:
                 print()
-                pretty_print(es.indices.stats(index=argv[0], level="indices", metric=argv[1], expand_wildcards="all",
-                                              human=True), indent=2)
+                pretty_print(
+                    es.indices.stats(
+                        index=argv[0],
+                        level="indices",
+                        metric=argv[1],
+                        expand_wildcards="all",
+                        human=True,
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -1098,7 +1189,9 @@ class Show(cmd.Cmd):
             index_temp = []
             for text_line in index_list.split():
                 index_temp.append(text_line)
-            index_dict = dict(index_temp[i:i + 2] for i in range(0, len(index_temp), 2))
+            index_dict = dict(
+                index_temp[i : i + 2] for i in range(0, len(index_temp), 2)
+            )
             index_dict = {str(k): int(v) for k, v in index_dict.items()}
             index_sort = sorted(index_dict.items(), key=operator.itemgetter(1))
             almost_1mb = []
@@ -1127,10 +1220,15 @@ class Show(cmd.Cmd):
             print(
                 "i <= 1.MB: {0} | i <= 10.MB: {1} | i <= 100.MB: {2} | i <= 1.GB: {3} | i <= 10.GB: {4} | i <= "
                 "100.GB: {5} | i >= 100.GB: {6}".format(
-                    str(len(almost_1mb)), str(
-                        len(almost_10mb)), str(len(almost_100mb)), str(
-                        len(almost_1gb)), str(len(almost_10gb)), str(
-                        len(almost_100gb)), str(len(almost_other))))
+                    str(len(almost_1mb)),
+                    str(len(almost_10mb)),
+                    str(len(almost_100mb)),
+                    str(len(almost_1gb)),
+                    str(len(almost_10gb)),
+                    str(len(almost_100gb)),
+                    str(len(almost_other)),
+                )
+            )
             print()
         except Exception:
             error()
@@ -1144,7 +1242,9 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.indices.get_settings(index=arg, flat_settings=True), indent=2)
+                pretty_print(
+                    es.indices.get_settings(index=arg, flat_settings=True), indent=2
+                )
                 print()
             except Exception:
                 error()
@@ -1171,8 +1271,11 @@ class Show(cmd.Cmd):
             ymatch = ystats.findall(index_list)
             gstats = re.compile("green")
             gmatch = gstats.findall(index_list)
-            print("Indices states: RED: {0} YELLOW: {1} GREEN: {2}".format(str(len(rmatch)), str(len(ymatch)), str(
-                len(gmatch))))
+            print(
+                "Indices states: RED: {0} YELLOW: {1} GREEN: {2}".format(
+                    str(len(rmatch)), str(len(ymatch)), str(len(gmatch))
+                )
+            )
         except Exception:
             error()
 
@@ -1258,14 +1361,19 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.cluster.state(metric="metadata", index=arg, flat_settings=True), indent=2)
+                pretty_print(
+                    es.cluster.state(metric="metadata", index=arg, flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.cluster.state(metric="metadata", flat_settings=True), indent=2)
+                pretty_print(
+                    es.cluster.state(metric="metadata", flat_settings=True), indent=2
+                )
                 print()
             except Exception:
                 error()
@@ -1277,9 +1385,9 @@ class Show(cmd.Cmd):
 
     def do_indices(self, arg):
         """
-         The indices command provides a cross-section of each index.
-         $ indices [index] - show information about [index].
-         $ indices - show information about all indices (default).
+        The indices command provides a cross-section of each index.
+        $ indices [index] - show information about [index].
+        $ indices - show information about all indices (default).
         """
         if arg:
             try:
@@ -1378,13 +1486,22 @@ class Show(cmd.Cmd):
         if len(argv) == 4:
             try:
                 print()
-                less(es.cat.indices(s=argv[0] + ":" + argv[1], v=True, h="index," + argv[2], index=argv[3]))
+                less(
+                    es.cat.indices(
+                        s=argv[0] + ":" + argv[1],
+                        v=True,
+                        h="index," + argv[2],
+                        index=argv[3],
+                    )
+                )
                 print()
             except Exception:
                 error()
         else:
             print()
-            print("Please enter: 1) value to sort on  2) sort order [asc/desc] 3) value to display 4) index name.")
+            print(
+                "Please enter: 1) value to sort on  2) sort order [asc/desc] 3) value to display 4) index name."
+            )
             print()
 
     def do_indices_green(self, arg):
@@ -1511,14 +1628,22 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.cluster.state(metric="routing_table", index=arg, flat_settings=True), indent=2)
+                pretty_print(
+                    es.cluster.state(
+                        metric="routing_table", index=arg, flat_settings=True
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.cluster.state(metric="routing_table", flat_settings=True), indent=2)
+                pretty_print(
+                    es.cluster.state(metric="routing_table", flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -1617,14 +1742,23 @@ class Show(cmd.Cmd):
             else:
                 try:
                     print()
-                    print(json.dumps(es.indices.shard_stores(index=argv[0], status=argv[1]), indent=4))
+                    print(
+                        json.dumps(
+                            es.indices.shard_stores(index=argv[0], status=argv[1]),
+                            indent=4,
+                        )
+                    )
                     print()
                 except Exception:
                     error()
         else:
             try:
                 print()
-                print(json.dumps(es.indices.shard_stores(index="_all", status="all"), indent=4))
+                print(
+                    json.dumps(
+                        es.indices.shard_stores(index="_all", status="all"), indent=4
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -1736,17 +1870,28 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                print(es.cat.recovery(index=arg, v=True, s="index",
-                                      h="idx,sh,ti,ty,st,shost,snode,thost,tnode,rep,snap,f,fr,fp,tf,b,br,bp,tb,to,"
-                                        "tor,top"))
+                print(
+                    es.cat.recovery(
+                        index=arg,
+                        v=True,
+                        s="index",
+                        h="idx,sh,ti,ty,st,shost,snode,thost,tnode,rep,snap,f,fr,fp,tf,b,br,bp,tb,to,"
+                        "tor,top",
+                    )
+                )
             except Exception:
                 error()
         else:
             try:
                 print()
-                less(es.cat.recovery(v=True, s="index",
-                                     h="idx,sh,ti,ty,st,shost,snode,thost,tnode,rep,snap,f,fr,fp,tf,b,br,bp,tb,to,"
-                                       "tor,top"))
+                less(
+                    es.cat.recovery(
+                        v=True,
+                        s="index",
+                        h="idx,sh,ti,ty,st,shost,snode,thost,tnode,rep,snap,f,fr,fp,tf,b,br,bp,tb,to,"
+                        "tor,top",
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -1810,8 +1955,8 @@ class Show(cmd.Cmd):
         try:
             data = es.cat.shards(h="prirep,node")
             uniq = []
-            for line in data.split('\n'):
-                if line.startswith('p '):
+            for line in data.split("\n"):
+                if line.startswith("p "):
                     splitted = line.split()
                     uniq.append(splitted[1])
             print()
@@ -1829,8 +1974,8 @@ class Show(cmd.Cmd):
         try:
             data = es.cat.shards(h="prirep,node")
             uniq = []
-            for line in data.split('\n'):
-                if line.startswith('r '):
+            for line in data.split("\n"):
+                if line.startswith("r "):
                     splitted = line.split()
                     uniq.append(splitted[1])
             print()
@@ -1903,7 +2048,9 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.plugins(v=True, s="name", h="name,component,version,description"))
+            print(
+                es.cat.plugins(v=True, s="name", h="name,component,version,description")
+            )
         except Exception:
             error()
 
@@ -1924,14 +2071,22 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="settings", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg, metric="settings", human=True, flat_settings=True
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="settings", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(metric="settings", human=True, flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -1950,7 +2105,11 @@ class Show(cmd.Cmd):
             if len(argv) == 3:
                 try:
                     print()
-                    print(es.nodes.hot_threads(threads=argv[0], doc_type=argv[1], node_id=argv[2]))
+                    print(
+                        es.nodes.hot_threads(
+                            threads=argv[0], doc_type=argv[1], node_id=argv[2]
+                        )
+                    )
                     print()
                 except Exception:
                     error()
@@ -1997,7 +2156,10 @@ class Show(cmd.Cmd):
             if len(argv) == 1:
                 try:
                     print()
-                    pretty_print(es.tasks.list(detailed=True, group_by="nodes", actions=argv[0]), indent=2)
+                    pretty_print(
+                        es.tasks.list(detailed=True, group_by="nodes", actions=argv[0]),
+                        indent=2,
+                    )
                     print()
                 except Exception:
                     error()
@@ -2023,7 +2185,10 @@ class Show(cmd.Cmd):
             if len(argv) == 1:
                 try:
                     print()
-                    pretty_print(es.tasks.list(detailed=True, group_by="nodes", nodes=argv[0]), indent=2)
+                    pretty_print(
+                        es.tasks.list(detailed=True, group_by="nodes", nodes=argv[0]),
+                        indent=2,
+                    )
                     print()
                 except Exception:
                     error()
@@ -2058,14 +2223,21 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="os", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg, metric="os", human=True, flat_settings=True
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="os", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(metric="os", human=True, flat_settings=True), indent=2
+                )
                 print()
             except Exception:
                 error()
@@ -2086,14 +2258,22 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="process", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg, metric="process", human=True, flat_settings=True
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="process", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(metric="process", human=True, flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -2110,14 +2290,22 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="jvm", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg, metric="jvm", human=True, flat_settings=True
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="jvm", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(metric="jvm", human=True, flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -2134,14 +2322,25 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="thread_pool", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg,
+                        metric="thread_pool",
+                        human=True,
+                        flat_settings=True,
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="thread_pool", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(metric="thread_pool", human=True, flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -2158,14 +2357,22 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="transport", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg, metric="transport", human=True, flat_settings=True
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="transport", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(metric="transport", human=True, flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -2182,14 +2389,22 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="http", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg, metric="http", human=True, flat_settings=True
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="http", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(metric="http", human=True, flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -2212,14 +2427,22 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="plugins", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg, metric="plugins", human=True, flat_settings=True
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="plugins", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(metric="plugins", human=True, flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -2238,14 +2461,22 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="ingest", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg, metric="ingest", human=True, flat_settings=True
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="ingest", human=True, flat_settings=True), indent=2)
+                pretty_print(
+                    es.nodes.info(metric="ingest", human=True, flat_settings=True),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -2267,14 +2498,20 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.info(node_id=arg, metric="indices", human=True, flat_settings=True))
+                pretty_print(
+                    es.nodes.info(
+                        node_id=arg, metric="indices", human=True, flat_settings=True
+                    )
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.info(metric="indices", human=True, flat_settings=True))
+                pretty_print(
+                    es.nodes.info(metric="indices", human=True, flat_settings=True)
+                )
                 print()
             except Exception:
                 error()
@@ -2292,7 +2529,11 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="indices", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(
+                        node_id=arg, metric="indices", human=True, level="node"
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -2358,7 +2599,9 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="fs", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(node_id=arg, metric="fs", human=True, level="node")
+                )
                 print()
             except Exception:
                 error()
@@ -2382,7 +2625,9 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="http", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(node_id=arg, metric="http", human=True, level="node")
+                )
                 print()
             except Exception:
                 error()
@@ -2406,7 +2651,9 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="jvm", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(node_id=arg, metric="jvm", human=True, level="node")
+                )
                 print()
             except Exception:
                 error()
@@ -2461,7 +2708,9 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="os", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(node_id=arg, metric="os", human=True, level="node")
+                )
                 print()
             except Exception:
                 error()
@@ -2485,7 +2734,11 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="process", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(
+                        node_id=arg, metric="process", human=True, level="node"
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -2509,14 +2762,20 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="thread_pool", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(
+                        node_id=arg, metric="thread_pool", human=True, level="node"
+                    )
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.stats(metric="thread_pool", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(metric="thread_pool", human=True, level="node")
+                )
                 print()
             except Exception:
                 error()
@@ -2533,14 +2792,20 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="transport", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(
+                        node_id=arg, metric="transport", human=True, level="node"
+                    )
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.stats(metric="transport", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(metric="transport", human=True, level="node")
+                )
                 print()
             except Exception:
                 error()
@@ -2557,7 +2822,11 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="breaker", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(
+                        node_id=arg, metric="breaker", human=True, level="node"
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -2581,14 +2850,20 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="discovery", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(
+                        node_id=arg, metric="discovery", human=True, level="node"
+                    )
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.stats(metric="discovery", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(metric="discovery", human=True, level="node")
+                )
                 print()
             except Exception:
                 error()
@@ -2605,7 +2880,11 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="ingest", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(
+                        node_id=arg, metric="ingest", human=True, level="node"
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -2639,14 +2918,25 @@ class Show(cmd.Cmd):
         if arg:
             try:
                 print()
-                pretty_print(es.nodes.stats(node_id=arg, metric="adaptive_selection", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(
+                        node_id=arg,
+                        metric="adaptive_selection",
+                        human=True,
+                        level="node",
+                    )
+                )
                 print()
             except Exception:
                 error()
         else:
             try:
                 print()
-                pretty_print(es.nodes.stats(metric="adaptive_selection", human=True, level="node"))
+                pretty_print(
+                    es.nodes.stats(
+                        metric="adaptive_selection", human=True, level="node"
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -2660,7 +2950,13 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,diskTotal,diskUsed,diskAvail,diskUsedPercent", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,diskTotal,diskUsed,diskAvail,diskUsedPercent",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2700,7 +2996,11 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,heap.current,heap.percent,heap.max", v=True))
+            print(
+                es.cat.nodes(
+                    s="name", h="name,ip,id,heap.current,heap.percent,heap.max", v=True
+                )
+            )
         except Exception:
             error()
 
@@ -2710,7 +3010,11 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,ram.current,ram.percent,ram.max", v=True))
+            print(
+                es.cat.nodes(
+                    s="name", h="name,ip,id,ram.current,ram.percent,ram.max", v=True
+                )
+            )
         except Exception:
             error()
 
@@ -2720,7 +3024,13 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,file_desc.current,file_desc.percent,file_desc.max", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,file_desc.current,file_desc.percent,file_desc.max",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2730,7 +3040,11 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,cpu,load_1m,load_5m,load_15m", v=True))
+            print(
+                es.cat.nodes(
+                    s="name", h="name,ip,id,cpu,load_1m,load_5m,load_15m", v=True
+                )
+            )
         except Exception:
             error()
 
@@ -2783,7 +3097,11 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,fielddataMemory,fielddataEvictions", v=True))
+            print(
+                es.cat.nodes(
+                    s="name", h="name,ip,id,fielddataMemory,fielddataEvictions", v=True
+                )
+            )
         except Exception:
             error()
 
@@ -2793,7 +3111,13 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,queryCacheMemory,queryCacheEvictions", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,queryCacheMemory,queryCacheEvictions",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2803,9 +3127,14 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name",
-                               h="name,ip,id,requestCacheMemory,requestCacheEvictions,requestCacheHitCount,"
-                                 "requestCacheMissCount", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,requestCacheMemory,requestCacheEvictions,requestCacheHitCount,"
+                    "requestCacheMissCount",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2815,7 +3144,9 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,flushTotal,flushTotalTime", v=True))
+            print(
+                es.cat.nodes(s="name", h="name,ip,id,flushTotal,flushTotalTime", v=True)
+            )
         except Exception:
             error()
 
@@ -2825,9 +3156,14 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name",
-                               h="name,ip,id,getCurrent,getTime,getTotal,getExistsTime,getExistsTotal,getMissingTime,"
-                                 "getMissingTotal", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,getCurrent,getTime,getTotal,getExistsTime,getExistsTotal,getMissingTime,"
+                    "getMissingTotal",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2837,8 +3173,13 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name",
-                               h="name,ip,id,indexingDeleteCurrent,indexingDeleteTime,indexingDeleteTotal", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,indexingDeleteCurrent,indexingDeleteTime,indexingDeleteTotal",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2848,9 +3189,14 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name",
-                               h="name,ip,id,indexingIndexCurrent,indexingIndexTime,indexingIndexTotal,"
-                                 "indexingIndexFailed", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,indexingIndexCurrent,indexingIndexTime,indexingIndexTotal,"
+                    "indexingIndexFailed",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2860,9 +3206,14 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name",
-                               h="name,ip,id,mergesCurrent,mergesCurrentDocs,mergesCurrentSize,mergesTotal,"
-                                 "mergesTotalDocs,mergesTotalSize,mergesTotalTime", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,mergesCurrent,mergesCurrentDocs,mergesCurrentSize,mergesTotal,"
+                    "mergesTotalDocs,mergesTotalSize,mergesTotalTime",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2872,7 +3223,9 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,refreshTotal,refreshTime", v=True))
+            print(
+                es.cat.nodes(s="name", h="name,ip,id,refreshTotal,refreshTime", v=True)
+            )
         except Exception:
             error()
 
@@ -2882,7 +3235,13 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,scriptCompilations,scriptCacheEvictions", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,scriptCompilations,scriptCacheEvictions",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2902,7 +3261,13 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,searchFetchCurrent,searchFetchTime,searchFetchTotal", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,searchFetchCurrent,searchFetchTime,searchFetchTotal",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2912,7 +3277,13 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,searchQueryCurrent,searchQueryTime,searchQueryTotal", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,searchQueryCurrent,searchQueryTime,searchQueryTotal",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2922,7 +3293,13 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,searchScrollCurrent,searchScrollTime,searchScrollTotal", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,searchScrollCurrent,searchScrollTime,searchScrollTotal",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2932,9 +3309,14 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name",
-                               h="name,ip,id,segmentsCount,segmentsMemory,segmentsIndexWriterMemor,"
-                                 "segmentsVersionMapMemory,fixedBitsetMemory", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,segmentsCount,segmentsMemory,segmentsIndexWriterMemor,"
+                    "segmentsVersionMapMemory,fixedBitsetMemory",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2944,7 +3326,13 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.nodes(s="name", h="name,ip,id,suggestCurrent,suggestTime,suggestTotal", v=True))
+            print(
+                es.cat.nodes(
+                    s="name",
+                    h="name,ip,id,suggestCurrent,suggestTime,suggestTotal",
+                    v=True,
+                )
+            )
         except Exception:
             error()
 
@@ -2954,9 +3342,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="system_read", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="system_read",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -2966,9 +3360,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="system_write", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="system_write",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -2978,9 +3378,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="write", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="write",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -2990,9 +3396,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="bulk", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="bulk",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3002,9 +3414,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="analyze", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="analyze",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3014,9 +3432,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="generic", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="generic",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3026,9 +3450,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="index", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="index",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3038,9 +3468,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="search", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="search",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3050,9 +3486,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="get", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="get",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3062,9 +3504,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="percolate", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="percolate",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3074,9 +3522,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="snapshot", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="snapshot",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3086,9 +3540,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="warmer", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="warmer",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3098,9 +3558,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="refresh", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="refresh",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3110,9 +3576,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="listener", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="listener",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3122,9 +3594,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="management", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="management",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3134,9 +3612,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="force_merge", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="force_merge",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3146,9 +3630,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="flush", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="flush",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3158,9 +3648,15 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="fetch_shard_started", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="fetch_shard_started",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
@@ -3170,17 +3666,24 @@ class Show(cmd.Cmd):
         """
         try:
             print()
-            print(es.cat.thread_pool(v=True, thread_pool_patterns="fetch_shard_store", s="node_name",
-                                     h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
-                                       "min,max,keep_alive"))
+            print(
+                es.cat.thread_pool(
+                    v=True,
+                    thread_pool_patterns="fetch_shard_store",
+                    s="node_name",
+                    h="node_name,name,type,active,size,queue,queue_size,rejected,largest,completed,"
+                    "min,max,keep_alive",
+                )
+            )
         except Exception:
             error()
 
 
 # elasticsearch exec-console
 class Exec(cmd.Cmd):
-    intro = "{0}\n### Entering to cluster execution menu!\n### For more information, type \"help\" or \"?\".\n{1}". \
-        format(BColors.BOLD, BColors.ENDC)
+    intro = '{0}\n### Entering to cluster execution menu!\n### For more information, type "help" or "?".\n{1}'.format(
+        BColors.BOLD, BColors.ENDC
+    )
     prompt = "es7:exec~$ "
     ruler = "-"
     doc_header = "Available commands (type: help <command>):"
@@ -3268,7 +3771,7 @@ class Exec(cmd.Cmd):
         """
         if arg:
             history_length = readline.get_current_history_length()
-            for i in (range((history_length - int(arg)), history_length)):
+            for i in range((history_length - int(arg)), history_length):
                 print(readline.get_history_item(i + 1))
         else:
             for i in range(readline.get_current_history_length()):
@@ -3279,7 +3782,7 @@ class Exec(cmd.Cmd):
         Search for [term] in history file.
         $ history_search [term]
         """
-        for i in (range(readline.get_current_history_length())):
+        for i in range(readline.get_current_history_length()):
             if re.search(arg, str(readline.get_history_item(i + 1))):
                 print(readline.get_history_item(i + 1))
 
@@ -3355,7 +3858,9 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 2:
             try:
-                setme = '{{ "transient": {{ "{0}" : {1} }} }}'.format(str(argv[0]), str(argv[1]))
+                setme = '{{ "transient": {{ "{0}" : {1} }} }}'.format(
+                    str(argv[0]), str(argv[1])
+                )
                 print()
                 print("Setting: " + setme)
                 print()
@@ -3376,11 +3881,17 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 2:
             try:
-                setme = '{{ "persistent": {{ "{0}" : {1} }} }}'.format(str(argv[0]), str(argv[1]))
+                setme = '{{ "persistent": {{ "{0}" : {1} }} }}'.format(
+                    str(argv[0]), str(argv[1])
+                )
                 print()
                 print("Setting: " + setme)
                 print()
-                print(es.cluster.put_settings(body=setme, flat_settings=True, timeout="300s"))
+                print(
+                    es.cluster.put_settings(
+                        body=setme, flat_settings=True, timeout="300s"
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3398,7 +3909,9 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                setme = '{{ "index": {{ "{0}" : {1} }} }}'.format(str(argv[1]), str(argv[2]))
+                setme = '{{ "index": {{ "{0}" : {1} }} }}'.format(
+                    str(argv[1]), str(argv[2])
+                )
                 print()
                 print("Setting: " + setme)
                 print()
@@ -3460,10 +3973,18 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                setme = '{{ "settings": {{ "index": {{ "number_of_shards": {0}, "number_of_replicas": {1} }} }} }}' \
-                    .format(argv[1], argv[2])
+                setme = '{{ "settings": {{ "index": {{ "number_of_shards": {0}, "number_of_replicas": {1} }} }} }}'.format(
+                    argv[1], argv[2]
+                )
                 print()
-                print(es.indices.create(index=argv[0], timeout="300s", wait_for_active_shards="all", body=setme))
+                print(
+                    es.indices.create(
+                        index=argv[0],
+                        timeout="300s",
+                        wait_for_active_shards="all",
+                        body=setme,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3481,10 +4002,19 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                setme = '{{ "settings": {{ "index": {{ "number_of_shards": {0}, "number_of_replicas": {1}, ' \
-                        '"codec": "best_compression" }} }} }}'.format(argv[1], argv[2])
+                setme = (
+                    '{{ "settings": {{ "index": {{ "number_of_shards": {0}, "number_of_replicas": {1}, '
+                    '"codec": "best_compression" }} }} }}'.format(argv[1], argv[2])
+                )
                 print()
-                print(es.indices.create(index=argv[0], timeout="300s", wait_for_active_shards="all", body=setme))
+                print(
+                    es.indices.create(
+                        index=argv[0],
+                        timeout="300s",
+                        wait_for_active_shards="all",
+                        body=setme,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3502,7 +4032,9 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                setme = '{{ "settings": {{ "index": {{ "number_of_shards": {0} }} }} }}'.format(argv[2])
+                setme = '{{ "settings": {{ "index": {{ "number_of_shards": {0} }} }} }}'.format(
+                    argv[2]
+                )
                 print()
                 print(es.indices.split(index=argv[0], target=argv[1], body=setme))
                 print()
@@ -3525,7 +4057,9 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                setme = '{{ "settings": {{ "index": {{ "number_of_shards": {0} }} }} }}'.format(argv[2])
+                setme = '{{ "settings": {{ "index": {{ "number_of_shards": {0} }} }} }}'.format(
+                    argv[2]
+                )
                 print()
                 print(es.indices.shrink(index=argv[0], target=argv[1], body=setme))
                 print()
@@ -3564,8 +4098,16 @@ class Exec(cmd.Cmd):
         if arg:
             try:
                 print()
-                print(json.dumps(es.indices.analyze(body='{{ "analyzer": "standard", "text": "{0}" }}'.format(arg)),
-                                 indent=4))
+                print(
+                    json.dumps(
+                        es.indices.analyze(
+                            body='{{ "analyzer": "standard", "text": "{0}" }}'.format(
+                                arg
+                            )
+                        ),
+                        indent=4,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3582,8 +4124,14 @@ class Exec(cmd.Cmd):
         if arg:
             try:
                 print()
-                print(json.dumps(es.indices.analyze(body='{{ "analyzer": "simple", "text": "{0}" }}'.format(arg)),
-                                 indent=4))
+                print(
+                    json.dumps(
+                        es.indices.analyze(
+                            body='{{ "analyzer": "simple", "text": "{0}" }}'.format(arg)
+                        ),
+                        indent=4,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3600,8 +4148,16 @@ class Exec(cmd.Cmd):
         if arg:
             try:
                 print()
-                print(json.dumps(
-                    es.indices.analyze(body='{{ "analyzer": "whitespace", "text": "{0}" }}'.format(arg)), indent=4))
+                print(
+                    json.dumps(
+                        es.indices.analyze(
+                            body='{{ "analyzer": "whitespace", "text": "{0}" }}'.format(
+                                arg
+                            )
+                        ),
+                        indent=4,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3618,8 +4174,14 @@ class Exec(cmd.Cmd):
         if arg:
             try:
                 print()
-                print(json.dumps(es.indices.analyze(body='{{ "analyzer": "stop", "text": "{0}" }}'.format(arg)),
-                                 indent=4))
+                print(
+                    json.dumps(
+                        es.indices.analyze(
+                            body='{{ "analyzer": "stop", "text": "{0}" }}'.format(arg)
+                        ),
+                        indent=4,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3637,8 +4199,15 @@ class Exec(cmd.Cmd):
             try:
                 print()
                 print(
-                    json.dumps(es.indices.analyze(body='{{ "analyzer": "keyword", "text": "{0}" }}'.format(arg)),
-                               indent=4))
+                    json.dumps(
+                        es.indices.analyze(
+                            body='{{ "analyzer": "keyword", "text": "{0}" }}'.format(
+                                arg
+                            )
+                        ),
+                        indent=4,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3655,9 +4224,16 @@ class Exec(cmd.Cmd):
         if arg:
             try:
                 print()
-                print(json.dumps(
-                    es.indices.analyze(body='{{ "analyzer": "fingerprint", "text": "{0}" }}'.format(arg)),
-                    indent=4))
+                print(
+                    json.dumps(
+                        es.indices.analyze(
+                            body='{{ "analyzer": "fingerprint", "text": "{0}" }}'.format(
+                                arg
+                            )
+                        ),
+                        indent=4,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3674,12 +4250,20 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 2:
             try:
-                reindex = '{{ "source": {{ "index": "{0}" }}, "dest": {{ "index": "{1}" }} }}'.format(argv[0],
-                                                                                                      argv[1])
+                reindex = '{{ "source": {{ "index": "{0}" }}, "dest": {{ "index": "{1}" }} }}'.format(
+                    argv[0], argv[1]
+                )
                 print()
                 print("Executing: " + reindex)
                 print()
-                print(es.reindex(body=reindex, slices=8, wait_for_active_shards="all", wait_for_completion=False))
+                print(
+                    es.reindex(
+                        body=reindex,
+                        slices=8,
+                        wait_for_active_shards="all",
+                        wait_for_completion=False,
+                    )
+                )
                 print()
             except Exception:
                 error()
@@ -3713,7 +4297,9 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 2:
             try:
-                replicaset = '{{ "index": {{ "number_of_replicas": {0} }} }}'.format(argv[1])
+                replicaset = '{{ "index": {{ "number_of_replicas": {0} }} }}'.format(
+                    argv[1]
+                )
                 print()
                 print("Setting: " + replicaset)
                 print()
@@ -3735,7 +4321,9 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 2:
             try:
-                replica = '{{ "index": {{ "auto_expand_replicas": {0} }} }}'.format(argv[1])
+                replica = '{{ "index": {{ "auto_expand_replicas": {0} }} }}'.format(
+                    argv[1]
+                )
                 print()
                 print("Setting: " + replica)
                 print()
@@ -3802,7 +4390,9 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 2:
             try:
-                maxwin = '{{ "index": {{ "max_rescore_window": {0} }} }}'.format(argv[1])
+                maxwin = '{{ "index": {{ "max_rescore_window": {0} }} }}'.format(
+                    argv[1]
+                )
                 print()
                 print("Setting: " + maxwin)
                 print()
@@ -3823,7 +4413,9 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 2:
             try:
-                readonly = '{{ "index": {{ "blocks.read_only": {0} }} }}'.format(argv[1])
+                readonly = '{{ "index": {{ "blocks.read_only": {0} }} }}'.format(
+                    argv[1]
+                )
                 print()
                 print("Setting: " + readonly)
                 print()
@@ -3845,7 +4437,11 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 2:
             try:
-                readonly = '{{ "index": {{ "blocks.read_only_allow_delete": {0} }} }}'.format(argv[1])
+                readonly = (
+                    '{{ "index": {{ "blocks.read_only_allow_delete": {0} }} }}'.format(
+                        argv[1]
+                    )
+                )
                 print()
                 print("Setting: " + readonly)
                 print()
@@ -3929,7 +4525,11 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                less(json.dumps(es.search(index=argv[0], q=argv[1], size=argv[2]), indent=2))
+                less(
+                    json.dumps(
+                        es.search(index=argv[0], q=argv[1], size=argv[2]), indent=2
+                    )
+                )
             except Exception:
                 error()
         else:
@@ -3980,7 +4580,9 @@ class Exec(cmd.Cmd):
             print("Please provide index name.")
             print()
 
-    def complete_indices_force_merge_only_expunge_deletes(self, text, line, begidx, endidx):
+    def complete_indices_force_merge_only_expunge_deletes(
+        self, text, line, begidx, endidx
+    ):
         return [i for i in indexlist() if i.startswith(text)]
 
     def do_indices_aliases_delete(self, arg):
@@ -4249,7 +4851,9 @@ class Exec(cmd.Cmd):
         if arg:
             try:
                 indices_list = es.cat.indices(s="index", v=True, health=arg)
-                indices_to_delete = es.cat.indices(s="index", health=arg, h="index", format="json")
+                indices_to_delete = es.cat.indices(
+                    s="index", health=arg, h="index", format="json"
+                )
                 print()
                 print(indices_list)
                 print()
@@ -4260,9 +4864,16 @@ class Exec(cmd.Cmd):
                     counter = 1
                     for indices in indices_to_delete:
                         idx = indices["index"]
-                        print("Deleting: {0} [{1}/{2}]".format(idx, counter, total_size))
+                        print(
+                            "Deleting: {0} [{1}/{2}]".format(idx, counter, total_size)
+                        )
                         counter += 1
-                        es.indices.delete(index=idx, master_timeout="300s", timeout="300s", ignore=[404])
+                        es.indices.delete(
+                            index=idx,
+                            master_timeout="300s",
+                            timeout="300s",
+                            ignore=[404],
+                        )
                         print("Index {0} has been deleted.".format(idx))
                     print()
                 else:
@@ -4284,7 +4895,9 @@ class Exec(cmd.Cmd):
         if arg:
             try:
                 indices_list = es.cat.indices(s="index", v=True, index=arg)
-                indices_to_delete = es.cat.indices(s="index", index=arg, h="index", format="json")
+                indices_to_delete = es.cat.indices(
+                    s="index", index=arg, h="index", format="json"
+                )
                 print()
                 print(indices_list)
                 print()
@@ -4295,9 +4908,16 @@ class Exec(cmd.Cmd):
                     counter = 1
                     for indices in indices_to_delete:
                         idx = indices["index"]
-                        print("Deleting: {0} [{1}/{2}]".format(idx, counter, total_size))
+                        print(
+                            "Deleting: {0} [{1}/{2}]".format(idx, counter, total_size)
+                        )
                         counter += 1
-                        es.indices.delete(index=idx, master_timeout="300s", timeout="300s", ignore=[404])
+                        es.indices.delete(
+                            index=idx,
+                            master_timeout="300s",
+                            timeout="300s",
+                            ignore=[404],
+                        )
                         print("Index {0} has been deleted.".format(idx))
                     print()
                 else:
@@ -4319,7 +4939,9 @@ class Exec(cmd.Cmd):
         if arg:
             try:
                 indices_list = es.cat.indices(s="index", v=True, index=arg)
-                indices_to_close = es.cat.indices(s="index", index=arg, h="index", format="json")
+                indices_to_close = es.cat.indices(
+                    s="index", index=arg, h="index", format="json"
+                )
                 print()
                 print(indices_list)
                 print()
@@ -4332,7 +4954,12 @@ class Exec(cmd.Cmd):
                         idx = indices["index"]
                         print("Closing: {0} [{1}/{2}]".format(idx, counter, total_size))
                         counter += 1
-                        es.indices.close(index=idx, master_timeout="300s", timeout="300s", ignore=[404])
+                        es.indices.close(
+                            index=idx,
+                            master_timeout="300s",
+                            timeout="300s",
+                            ignore=[404],
+                        )
                         print("Index {0} has been closed.".format(idx))
                     print()
                 else:
@@ -4354,7 +4981,9 @@ class Exec(cmd.Cmd):
         if arg:
             try:
                 indices_list = es.cat.indices(s="index", v=True, index=arg)
-                indices_to_open = es.cat.indices(s="index", index=arg, h="index", format="json")
+                indices_to_open = es.cat.indices(
+                    s="index", index=arg, h="index", format="json"
+                )
                 print()
                 print(indices_list)
                 print()
@@ -4367,7 +4996,12 @@ class Exec(cmd.Cmd):
                         idx = indices["index"]
                         print("Opening: {0} [{1}/{2}]".format(idx, counter, total_size))
                         counter += 1
-                        es.indices.open(index=idx, master_timeout="300s", timeout="300s", ignore=[404])
+                        es.indices.open(
+                            index=idx,
+                            master_timeout="300s",
+                            timeout="300s",
+                            ignore=[404],
+                        )
                         print("Index {0} has been opened.".format(idx))
                     print()
                 else:
@@ -4391,13 +5025,19 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                alloc = '{{ "commands": [ {{ "allocate_replica": {{ "index": "{0}", "shard": {1}, "node": "{2}" ' \
-                        '}} }} ] }}'.format(
-                    str(argv[0]), str(argv[1]), str(argv[2]))
+                alloc = (
+                    '{{ "commands": [ {{ "allocate_replica": {{ "index": "{0}", "shard": {1}, "node": "{2}" '
+                    "}} }} ] }}".format(str(argv[0]), str(argv[1]), str(argv[2]))
+                )
                 print()
                 print("Executing: " + alloc)
                 print()
-                pretty_print(es.cluster.reroute(body=alloc, dry_run=True, explain=True, metric="master_node"), indent=2)
+                pretty_print(
+                    es.cluster.reroute(
+                        body=alloc, dry_run=True, explain=True, metric="master_node"
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -4418,14 +5058,19 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                allocme = '{{ "commands": [ {{ "allocate_replica": {{ "index": "{0}", "shard": {1}, "node": "{2}" ' \
-                          '}} }} ] }}'.format(
-                    str(argv[0]), str(argv[1]), str(argv[2]))
+                allocme = (
+                    '{{ "commands": [ {{ "allocate_replica": {{ "index": "{0}", "shard": {1}, "node": "{2}" '
+                    "}} }} ] }}".format(str(argv[0]), str(argv[1]), str(argv[2]))
+                )
                 print()
                 print("Executing: " + allocme)
                 print()
-                pretty_print(es.cluster.reroute(body=allocme, dry_run=False, explain=True, metric="master_node"),
-                             indent=2)
+                pretty_print(
+                    es.cluster.reroute(
+                        body=allocme, dry_run=False, explain=True, metric="master_node"
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -4448,14 +5093,19 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                cancel = '{{ "commands": [ {{ "cancel": {{ "index": "{0}", "shard": {1}, "node": "{2}" ' \
-                         '}} }} ] }}'.format(
-                    str(argv[0]), str(argv[1]), str(argv[2]))
+                cancel = (
+                    '{{ "commands": [ {{ "cancel": {{ "index": "{0}", "shard": {1}, "node": "{2}" '
+                    "}} }} ] }}".format(str(argv[0]), str(argv[1]), str(argv[2]))
+                )
                 print()
                 print("Executing: " + cancel)
                 print()
-                pretty_print(es.cluster.reroute(body=cancel, dry_run=False, explain=True, metric="master_node"),
-                             indent=2)
+                pretty_print(
+                    es.cluster.reroute(
+                        body=cancel, dry_run=False, explain=True, metric="master_node"
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -4477,14 +5127,23 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 3:
             try:
-                cancel = '{{ "commands": [ {{ "cancel": {{ "index": "{0}", "shard": {1}, "node": "{2}" ' \
-                         '}} }} ] }}'.format(
-                    str(argv[0]), str(argv[1]), str(argv[2]))
+                cancel = (
+                    '{{ "commands": [ {{ "cancel": {{ "index": "{0}", "shard": {1}, "node": "{2}" '
+                    "}} }} ] }}".format(str(argv[0]), str(argv[1]), str(argv[2]))
+                )
                 print()
                 print("Executing: " + cancel)
                 print()
-                pretty_print(es.cluster.reroute(body=cancel, dry_run=False, allow_primary=True, explain=True,
-                                                metric="master_node"), indent=2)
+                pretty_print(
+                    es.cluster.reroute(
+                        body=cancel,
+                        dry_run=False,
+                        allow_primary=True,
+                        explain=True,
+                        metric="master_node",
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -4507,14 +5166,21 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 4:
             try:
-                moveme = '{{ "commands": [ {{ "move": {{ "index": "{0}", "shard": {1}, "from_node": "{2}",' \
-                         '"to_node": "{3}" }} }} ] }}'.format(str(argv[0]), str(argv[1]), str(argv[2]),
-                                                              str(argv[3]))
+                moveme = (
+                    '{{ "commands": [ {{ "move": {{ "index": "{0}", "shard": {1}, "from_node": "{2}",'
+                    '"to_node": "{3}" }} }} ] }}'.format(
+                        str(argv[0]), str(argv[1]), str(argv[2]), str(argv[3])
+                    )
+                )
                 print()
                 print("Executing: " + moveme)
                 print()
-                pretty_print(es.cluster.reroute(body=moveme, dry_run=True, explain=True, metric="master_node"),
-                             indent=2)
+                pretty_print(
+                    es.cluster.reroute(
+                        body=moveme, dry_run=True, explain=True, metric="master_node"
+                    ),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -4537,13 +5203,19 @@ class Exec(cmd.Cmd):
         argv = arg.split()
         if len(argv) == 4:
             try:
-                moveme = '{{ "commands": [ {{ "move": {{ "index": "{0}", "shard": {1}, "from_node": "{2}",' \
-                         '"to_node": "{3}" }} }} ] }}'.format(str(argv[0]), str(argv[1]), str(argv[2]),
-                                                              str(argv[3]))
+                moveme = (
+                    '{{ "commands": [ {{ "move": {{ "index": "{0}", "shard": {1}, "from_node": "{2}",'
+                    '"to_node": "{3}" }} }} ] }}'.format(
+                        str(argv[0]), str(argv[1]), str(argv[2]), str(argv[3])
+                    )
+                )
                 print()
                 print("Executing: " + moveme)
                 print()
-                pretty_print(es.cluster.reroute(body=moveme, explain=True, metric="master_node"), indent=2)
+                pretty_print(
+                    es.cluster.reroute(body=moveme, explain=True, metric="master_node"),
+                    indent=2,
+                )
                 print()
             except Exception:
                 error()
@@ -4569,7 +5241,11 @@ class Exec(cmd.Cmd):
                 print(es.nodes.reload_secure_settings())
             else:
                 print()
-                print(es.nodes.reload_secure_settings(body='{{"secure_settings_password": "{0}"}}'.format(password)))
+                print(
+                    es.nodes.reload_secure_settings(
+                        body='{{"secure_settings_password": "{0}"}}'.format(password)
+                    )
+                )
         except Exception:
             error()
 
@@ -4587,7 +5263,9 @@ class Exec(cmd.Cmd):
                 error()
         else:
             print()
-            print("Please enter node_id and task_number in format: node_id:task_number.")
+            print(
+                "Please enter node_id and task_number in format: node_id:task_number."
+            )
             print()
 
     # elasticsearch search-exec-console
@@ -4610,18 +5288,38 @@ class Exec(cmd.Cmd):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="eshell", description="example: eshell elasticsearch.lan",
-                                     epilog=":: ES7shell",
-                                     add_help=True)
-    parser.add_argument("host", nargs="?", help="elasticsearch IP or hostname (default: 127.0.0.1)",
-                        default="127.0.0.1", type=str)
-    parser.add_argument("-a", "--auth", dest="auth", help="use login and password", action="store_true")
-    parser.add_argument("-p", "--port", dest="port", help="elasticsearch http port (default: 9200)", default="9200",
-                        type=int)
+    parser = argparse.ArgumentParser(
+        prog="eshell",
+        description="example: eshell elasticsearch.lan",
+        epilog=":: ES7shell",
+        add_help=True,
+    )
+    parser.add_argument(
+        "host",
+        nargs="?",
+        help="elasticsearch IP or hostname (default: 127.0.0.1)",
+        default="127.0.0.1",
+        type=str,
+    )
+    parser.add_argument(
+        "-a", "--auth", dest="auth", help="use login and password", action="store_true"
+    )
+    parser.add_argument(
+        "-p",
+        "--port",
+        dest="port",
+        help="elasticsearch http port (default: 9200)",
+        default="9200",
+        type=int,
+    )
     args = parser.parse_args()
-    msg = (BColors.HEADER + "Connecting to elasticsearch server at address: {0:s}:{1:s}".format(args.host,
-                                                                                                str(args.port)) +
-           BColors.ENDC)
+    msg = (
+        BColors.HEADER
+        + "Connecting to elasticsearch server at address: {0:s}:{1:s}".format(
+            args.host, str(args.port)
+        )
+        + BColors.ENDC
+    )
     try:
         # validate the host
         if check_hostname(args.host):
@@ -4637,7 +5335,11 @@ if __name__ == "__main__":
             else:
                 sys.exit(2)
         else:
-            print(BColors.FAIL + "Wrong DNS or IP elasticsearch node address." + BColors.ENDC)
+            print(
+                BColors.FAIL
+                + "Wrong DNS or IP elasticsearch node address."
+                + BColors.ENDC
+            )
             sys.exit(2)
         # complement tabs
         if "libedit" in readline.__doc__:
@@ -4653,23 +5355,32 @@ if __name__ == "__main__":
         if os.path.isfile(logFile):
             size = os.path.getsize(logFile)
             if size >= 104857600:
-                logging.handlers.RotatingFileHandler(filename=logFile, backupCount=10).doRollover()
-        request_logger = logging.getLogger('urllib3')
+                logging.handlers.RotatingFileHandler(
+                    filename=logFile, backupCount=10
+                ).doRollover()
+        request_logger = logging.getLogger("urllib3")
         request_logger.setLevel(logging.DEBUG)
         request_file = logging.FileHandler(logFile)
         request_file.setLevel(logging.DEBUG)
-        request_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        request_formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         request_file.setFormatter(request_formatter)
         request_logger.addHandler(request_file)
-        response_logger = logging.getLogger('elasticsearch.trace')
+        response_logger = logging.getLogger("elasticsearch.trace")
         response_logger.setLevel(logging.DEBUG)
         response_file = logging.FileHandler(logFile)
         response_file.setLevel(logging.DEBUG)
-        response_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        response_formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         response_file.setFormatter(response_formatter)
         response_logger.addHandler(response_file)
         request_logger.info(
-            "### STARTING ELASTICSEARCH SHELL SESSION TO: {0:s}:{1:s}".format(args.host, str(args.port)))
+            "### STARTING ELASTICSEARCH SHELL SESSION TO: {0:s}:{1:s}".format(
+                args.host, str(args.port)
+            )
+        )
         # configure elasticsearch client
         if args.auth:
             login = input("Login: ")
@@ -4689,32 +5400,72 @@ if __name__ == "__main__":
                 context.verify_mode = ssl.CERT_NONE
                 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
                 warnings.filterwarnings("ignore", message="When using `ssl_context`")
-                es = elasticsearch.Elasticsearch(host=args.host, port=args.port, http_auth=(login, password),
-                                                 timeout=300, opaque_id="eshell", sniff_on_start=True,
-                                                 sniff_on_connection_fail=True, sniffer_timeout=60,
-                                                 retry_on_timeout=True, retry_on_status=True, max_retries=99,
-                                                 dead_timeout=300, ca_certs=ssl_ca, client_cert=ssl_crt, scheme="https",
-                                                 client_key=ssl_key, ssl_version=ssl.PROTOCOL_TLSv1_2,
-                                                 verify_certs=False, ssl_show_warn=False, ssl_context=context)
+                es = elasticsearch.Elasticsearch(
+                    host=args.host,
+                    port=args.port,
+                    http_auth=(login, password),
+                    timeout=300,
+                    opaque_id="eshell",
+                    sniff_on_start=True,
+                    sniff_on_connection_fail=True,
+                    sniffer_timeout=60,
+                    retry_on_timeout=True,
+                    retry_on_status=True,
+                    max_retries=99,
+                    dead_timeout=300,
+                    ca_certs=ssl_ca,
+                    client_cert=ssl_crt,
+                    scheme="https",
+                    client_key=ssl_key,
+                    ssl_version=ssl.PROTOCOL_TLSv1_2,
+                    verify_certs=False,
+                    ssl_show_warn=False,
+                    ssl_context=context,
+                )
             else:
-                es = elasticsearch.Elasticsearch(host=args.host, port=args.port, http_auth=(login, password),
-                                                 timeout=300, opaque_id="eshell", sniff_on_start=True,
-                                                 sniff_on_connection_fail=True, sniffer_timeout=60,
-                                                 retry_on_timeout=True, retry_on_status=True, max_retries=99,
-                                                 dead_timeout=300, ca_certs=ssl_ca, client_cert=ssl_crt, scheme="https",
-                                                 client_key=ssl_key, ssl_version=ssl.PROTOCOL_TLSv1_2)
+                es = elasticsearch.Elasticsearch(
+                    host=args.host,
+                    port=args.port,
+                    http_auth=(login, password),
+                    timeout=300,
+                    opaque_id="eshell",
+                    sniff_on_start=True,
+                    sniff_on_connection_fail=True,
+                    sniffer_timeout=60,
+                    retry_on_timeout=True,
+                    retry_on_status=True,
+                    max_retries=99,
+                    dead_timeout=300,
+                    ca_certs=ssl_ca,
+                    client_cert=ssl_crt,
+                    scheme="https",
+                    client_key=ssl_key,
+                    ssl_version=ssl.PROTOCOL_TLSv1_2,
+                )
         else:
-            es = elasticsearch.Elasticsearch(host=args.host, port=args.port, timeout=300, opaque_id="eshell",
-                                             sniff_on_start=True, sniff_on_connection_fail=True, sniffer_timeout=60,
-                                             retry_on_timeout=True, retry_on_status=True, max_retries=99,
-                                             dead_timeout=300)
+            es = elasticsearch.Elasticsearch(
+                host=args.host,
+                port=args.port,
+                timeout=300,
+                opaque_id="eshell",
+                sniff_on_start=True,
+                sniff_on_connection_fail=True,
+                sniffer_timeout=60,
+                retry_on_timeout=True,
+                retry_on_status=True,
+                max_retries=99,
+                dead_timeout=300,
+            )
         # run command line
         esconsole = ES()
         esconsole.cmdloop()
         # save history file
         atexit.register(readline.write_history_file, historyFile)
         request_logger.info(
-            "### CLOSING ELASTICSEARCH SHELL SESSION TO: {0:s}:{1:s}...".format(args.host, str(args.port)))
+            "### CLOSING ELASTICSEARCH SHELL SESSION TO: {0:s}:{1:s}...".format(
+                args.host, str(args.port)
+            )
+        )
     except KeyboardInterrupt:
         print("Exiting...")
         sys.exit(0)
